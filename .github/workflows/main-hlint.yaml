@@ -1,0 +1,24 @@
+name: hlint
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  hlint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: 'Check out repository'
+      uses: actions/checkout@v2
+
+    - name: 'Set up HLint'
+      uses: haskell/actions/hlint-setup@v1
+
+    - name: 'Run HLint'
+      uses: haskell/actions/hlint-run@v1
+      with:
+        path:    src/
+        fail-on: suggestion # <- warning ?

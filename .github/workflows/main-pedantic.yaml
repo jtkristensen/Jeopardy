@@ -1,4 +1,4 @@
-name: test-suite
+name: build-pedantic
 on:
   push:
     branches:
@@ -20,5 +20,5 @@ on:
           enable-stack:  true
           stack-version: '2.7.3'
 
-      - name: 'Run tests'
-        run: stack test --fast
+      - name: 'Build with --pedantic'
+        run: stack build --pedantic
