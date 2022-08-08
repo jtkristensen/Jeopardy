@@ -1,0 +1,77 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           Jeopardy
+version:        0.1.0.0
+synopsis:       A prototype interpreters for the Jeopardy programming language.
+description:    Please see the README on GitHub at <https://github.com/jtkristensen/Jeopardy#README.md>
+category:       Domain Specific Languages, Invertible Programs, Reversible Computing.
+homepage:       https://github.com/githubuser/Jeopardy#readme
+bug-reports:    https://github.com/githubuser/Jeopardy/issues
+author:         Joachim Tilsted Kristensen
+maintainer:     joachkr@ifi.uio.no
+copyright:      2022 Joachim Tilsted Kristensen
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/Jeopardy
+
+library
+  other-modules:
+      Paths_Jeopardy
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , mtl ==2.2.*
+    , parsec ==3.1.*
+    , tasty ==1.4.*
+    , tasty-hunit ==0.10.*
+    , tasty-quickcheck ==0.10.*
+    , tasty-smallcheck ==0.8.*
+  default-language: Haskell2010
+
+executable Jeopardy-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_Jeopardy
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      Jeopardy
+    , base >=4.7 && <5
+    , mtl ==2.2.*
+    , parsec ==3.1.*
+    , tasty ==1.4.*
+    , tasty-hunit ==0.10.*
+    , tasty-quickcheck ==0.10.*
+    , tasty-smallcheck ==0.8.*
+  default-language: Haskell2010
+
+test-suite Jeopardy-test
+  type: exitcode-stdio-1.0
+  main-is: Harness.hs
+  other-modules:
+      Paths_Jeopardy
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      Jeopardy
+    , base >=4.7 && <5
+    , mtl ==2.2.*
+    , parsec ==3.1.*
+    , tasty ==1.4.*
+    , tasty-hunit ==0.10.*
+    , tasty-quickcheck ==0.10.*
+    , tasty-smallcheck ==0.8.*
+  default-language: Haskell2010

@@ -1,6 +1,5 @@
+-- Driver program goes here in the future.
 module Main where
 
-import Lib
-
 main :: IO ()
-main = someFunc
+main = print "Driver not yet implemented."
