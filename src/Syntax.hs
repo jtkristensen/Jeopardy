@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
 {-|
 
 Module      : Syntax
