@@ -1,0 +1,46 @@
+name: main-ci
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  hlint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: 'Check out repository'
+      uses: actions/checkout@v2
+
+    - name: 'Set up HLint'
+      uses: haskell/actions/hlint-setup@v1
+
+    - name: 'Run HLint'
+      uses: haskell/actions/hlint-run@v1
+      with:
+        path:    src/
+        fail-on: suggestion # <- warning ?
+
+  calls-to-stack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Check out repository'
+        uses: actions/checkout@v2
+
+      - name: 'Set up stack'
+        uses: haskell/actions/setup@v1
+        with:
+          ghc-version:   '8.10.7'
+          enable-stack:  true
+          stack-version: '2.7.3'
+
+      - name: 'Build with --pedantic'
+        run: stack build --pedantic
+
+      - name: 'Run tests'
+        run: stack test --fast
+
+      # - name: 'Build documentation'
+      #   run: stack haddock
