@@ -26,6 +26,9 @@ source-repository head
 
 library
   exposed-modules:
+      Core.Syntax
+      Semantics.Invertible
+      Semantics.Reversible
       Syntax
   other-modules:
       Paths_Jeopardy
