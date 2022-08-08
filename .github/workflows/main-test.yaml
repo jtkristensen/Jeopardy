@@ -7,8 +7,8 @@ on:
     branches:
       - main
 
-test:
-  calls-to-stack:
+jobs:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - name: 'Check out repository'
