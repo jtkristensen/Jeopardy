@@ -12,6 +12,7 @@ As the paper currently suggests that bi-directional first match can be extended 
 - [ ] Interpreter reversible semantics.
 - [ ] Reaching definitions analysis (Nilson and Nilson but as a type-and-effect system).
 - [ ] Use reaching definitions in online partial evaluation (instead of in match-policy)?
+- [ ] Bidirectional online partial evaluator "(RD |- term -| Gamma) ~> term".
 - [ ] Control flow analysis (CFA1 from Nilson and Nilson).
 - [ ] Per module property based testing.
 - [ ] CI/CD.
