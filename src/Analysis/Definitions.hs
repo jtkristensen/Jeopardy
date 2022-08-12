@@ -28,11 +28,11 @@ duplicateDefinitionsAnalysis :: Program a -> [ConflictingDefinitions]
 duplicateDefinitionsAnalysis p =
     (MultipleDefinitionsOfFunction    <$> fs) ++
     (MultipleDefinitionsOfDatatype    <$> ds) ++
-    (MultipleDefinitionsOfConstructor <$> cs) 
+    (MultipleDefinitionsOfConstructor <$> cs)
   where
-    fs = nub $ functionNames    p \\ nub (functionNames    p) 
-    ds = nub $ datatypeNames    p \\ nub (datatypeNames    p) 
-    cs = nub $ constructorNames p \\ nub (constructorNames p) 
+    fs = nub $ functionNames    p \\ nub (functionNames    p)
+    ds = nub $ datatypeNames    p \\ nub (datatypeNames    p)
+    cs = nub $ constructorNames p \\ nub (constructorNames p)
 
 -- Checks if a program contains dupilicate definitions.
 hasDuplicateDefinitions :: Program a -> Bool

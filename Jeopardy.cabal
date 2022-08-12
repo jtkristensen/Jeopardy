@@ -28,6 +28,7 @@ library
   exposed-modules:
       Analysis.Bindings
       Analysis.Definitions
+      Core.Parser
       Core.Syntax
       Semantics.Invertible
       Semantics.Reversible
@@ -68,6 +69,7 @@ test-suite Jeopardy-test
   type: exitcode-stdio-1.0
   main-is: Harness.hs
   other-modules:
+      TestsForDefinitionsAnalysis
       Paths_Jeopardy
   hs-source-dirs:
       test
