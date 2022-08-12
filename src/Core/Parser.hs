@@ -33,11 +33,6 @@ newtype SourceFileReference = SourceFileReference (Maybe Info)
 
 -- * Implementation
 
--- parseFromFile :: FilePath -> IO (Either ParseError (Program SourceFileReference))
--- parseFromFile fileName =
---   do input <- readFile fileName
---      return $ runParser program () fileName input
-
 -- program :: Parser (Program SourceFileReference)
 -- program =
 --   do lexeme $ return ()
