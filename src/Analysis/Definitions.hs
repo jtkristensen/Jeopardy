@@ -15,8 +15,8 @@ This analysis contains the most general of analysis regarding definitions.
 module Analysis.Definitions where
 
 import Core.Syntax
-import Data.List      (nub)
-import Data.Maybe     (fromJust)
+import Data.List   (nub)
+import Data.Maybe  (fromJust)
 
 -- Checks if a program contains dupilicate definitions.
 hasDuplicateDefinitions :: Program a -> Bool
