@@ -73,12 +73,7 @@ lookupDatatype _ _                           = Nothing
 -- Looks up the name of the datatype a particular constructor bolongs to.
 lookupConstructorType :: C -> Program a -> Maybe T
 lookupConstructorType c p =
-  case nub candidateTypes of
+  case nub $ filter definesC (datatypeNames p) of
     [t] -> Just t
     _   -> Nothing
-  where
-    candidateTypes =
-      do t <- datatypeNames p
-         if     c `elem` (fst <$> fromJust (lookupDatatype t p))
-           then return t
-           else []
+  where definesC t = c `elem` (fst <$> fromJust (lookupDatatype t p))
