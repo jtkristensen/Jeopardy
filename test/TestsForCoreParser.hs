@@ -17,7 +17,47 @@ coreParserTests =
   testGroup "Unit tests about parsing the Core Jeopardy language."
     [ positivePatterns
     , negativePatterns
+    , positivePrograms
     ]
+
+positivePrograms :: TestTree
+positivePrograms =
+  testGroup "Positive tests for parsing programs"
+  [ testCase "Identity function." $
+    positive program
+      "id (x : nat) : nat = x . main id ." $
+    Function "id"
+      (          Variable "x" (), "nat")
+      (Pattern $ Variable "x" (), "nat") $
+    Main (Conventional "id" ())
+  , testCase "Swap program" $
+    positive program
+      ( "data nat = [suc nat] [zero].\n"  ++
+        "data pair = [pair nat nat] .\n " ++
+        "first ([pair a b] :pair): nat= a\n." ++
+        "second([pair a b]: pair) :nat = b .\n " ++
+        "swap (p : pair) : pair = \n" ++
+        "case first p : nat of" ++
+        "  ; a -> " ++
+        "case second p : nat of" ++
+        "  ; b -> [pair b a]." ++
+        "main swap ."
+      ) $
+    Data "nat" [("suc",["nat"]),("zero",[])] $
+    Data "pair" [("pair",["nat","nat"])] $
+    Function "first"
+      (Constructor "pair" [Variable "a" (),Variable "b" ()] (),"pair")
+      (Pattern (Variable "a" ()),"nat") $
+    Function "second"
+      (Constructor "pair" [Variable "a" (),Variable "b" ()] (),"pair")
+      (Pattern (Variable "b" ()),"nat") $
+    Function "swap" (Variable "p" (),"pair")
+      (Case (Application (Conventional "first" ()) (Variable "p" ()) (),"nat")
+         [(Variable "a" (),
+           Case (Application (Conventional "second" ()) (Variable "p" ()) (),"nat")
+             [(Variable "b" (), Pattern (Constructor "pair" [Variable "b" (),Variable "a" ()] ()))] ())] (),"pair") $
+    Main (Conventional "swap" ())
+  ]
 
 positivePatterns :: TestTree
 positivePatterns =

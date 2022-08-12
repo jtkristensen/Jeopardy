@@ -77,10 +77,7 @@ pattern_ = choice $ map info
 
 term_ :: Parser (Term Info)
 term_ = choice $
-  [ Pattern <$> pattern_
-  , parens term_
-  ] ++
-  map info
+  map (info . try)
   [ Application <$> inversion_ <*> pattern_
   , do _     <- keyword "case"
        t     <- term_
@@ -94,7 +91,11 @@ term_ = choice $
              t_i <- term_
              return (p_i, t_i)
          )
+  ] ++
+  [ Pattern <$> pattern_
+  , parens term_
   ]
+
 
 inversion_ :: Parser (Inversion Info)
 inversion_ = choice
