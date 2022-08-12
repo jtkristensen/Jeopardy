@@ -50,6 +50,7 @@ functionDefinition =
      t_t <- name
      _   <- symbol "="
      t   <- term_
+     _   <- symbol "."
      return $ Function f (p, t_p) (t, t_t)
 
 datatypeDefinition :: Parser Definition
@@ -58,12 +59,15 @@ datatypeDefinition =
      t  <- name
      _  <- symbol "="
      cs <- many $ brackets ((,) <$> name <*> many name)
+     _  <- symbol "."
      return $ Data t cs
 
 mainInversionDeclaration :: Parser (Program Info)
 mainInversionDeclaration =
   do _ <- keyword "main"
-     Main <$> inversion_
+     i <- inversion_
+     _ <- symbol "."
+     return $ Main i
 
 pattern_ :: Parser (Pattern Info)
 pattern_ = choice $ map info

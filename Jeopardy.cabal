@@ -69,6 +69,7 @@ test-suite Jeopardy-test
   type: exitcode-stdio-1.0
   main-is: Harness.hs
   other-modules:
+      TestsForCoreParser
       TestsForDefinitionsAnalysis
       Paths_Jeopardy
   hs-source-dirs:

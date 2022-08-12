@@ -34,27 +34,27 @@ data Program a
   = Function F (Pattern a, T) (Term a, T) (Program a)
   | Data T [(C, [T])]                     (Program a)
   | Main (Inversion a)
-  deriving (Functor, Eq)
+  deriving (Functor, Eq, Show)
 
 data Pattern                  a
   = Variable X                a
   | Constructor C [Pattern a] a
-  deriving (Functor, Eq)
+  deriving (Functor, Eq, Show)
 
 data Term                                  a
   = Pattern                   (Pattern a)
   | Application (Inversion a) (Pattern a)  a
   | Case (Term a, T) [(Pattern a, Term a)] a
-  deriving (Functor, Eq)
+  deriving (Functor, Eq, Show)
 
 data Inversion           a
   = Conventional F       a
   | Invert (Inversion a) a
-  deriving (Functor, Eq)
+  deriving (Functor, Eq, Show)
 
 data Value                a
   = Algebraic C [Value a] a
-  deriving (Functor, Eq)
+  deriving (Functor, Eq, Show)
 
 -- * Further more, a canonical form is a value. A value is a pattern that
 -- * contains no variables, a term can be a pattern hence:
