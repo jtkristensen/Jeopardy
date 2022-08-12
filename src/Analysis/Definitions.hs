@@ -36,8 +36,7 @@ duplicateDefinitionsAnalysis p =
 
 -- Checks if a program contains dupilicate definitions.
 hasDuplicateDefinitions :: Program a -> Bool
-hasDuplicateDefinitions p =
-  duplicateDefinitionsAnalysis p == []
+hasDuplicateDefinitions = null . duplicateDefinitionsAnalysis
 
 -- The names of all functions defined in a program.
 functionNames :: Program a -> [F]
