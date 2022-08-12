@@ -15,15 +15,29 @@ This analysis contains the most general of analysis regarding definitions.
 module Analysis.Definitions where
 
 import Core.Syntax
-import Data.List   (nub)
+import Data.List   (nub, (\\))
 import Data.Maybe  (fromJust)
+
+data ConflictingDefinitions
+  = MultipleDefinitionsOfFunction    F
+  | MultipleDefinitionsOfDatatype    T
+  | MultipleDefinitionsOfConstructor C
+  deriving (Eq)
+
+duplicateDefinitionsAnalysis :: Program a -> [ConflictingDefinitions]
+duplicateDefinitionsAnalysis p =
+    (MultipleDefinitionsOfFunction    <$> fs) ++
+    (MultipleDefinitionsOfDatatype    <$> ds) ++
+    (MultipleDefinitionsOfConstructor <$> cs) 
+  where
+    fs = nub $ functionNames    p \\ nub (functionNames    p) 
+    ds = nub $ datatypeNames    p \\ nub (datatypeNames    p) 
+    cs = nub $ constructorNames p \\ nub (constructorNames p) 
 
 -- Checks if a program contains dupilicate definitions.
 hasDuplicateDefinitions :: Program a -> Bool
 hasDuplicateDefinitions p =
-  functionNames    p /= nub (functionNames    p) ||
-  datatypeNames    p /= nub (datatypeNames    p) ||
-  constructorNames p /= nub (constructorNames p)
+  duplicateDefinitionsAnalysis p == []
 
 -- The names of all functions defined in a program.
 functionNames :: Program a -> [F]

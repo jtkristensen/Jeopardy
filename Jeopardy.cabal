@@ -26,6 +26,7 @@ source-repository head
 
 library
   exposed-modules:
+      Analysis.Bindings
       Analysis.Definitions
       Core.Syntax
       Semantics.Invertible
