@@ -7,7 +7,7 @@ As the paper currently suggests that bi-directional first match can be extended 
 [![tests](https://github.com/jtkristensen/Jeopardy/actions/workflows/main-test.yaml/badge.svg)](https://github.com/jtkristensen/Jeopardy/actions/workflows/main-test.yaml)
 
 ## TODO:
-- [ ] Abstract syntax etc..
+- [x] Abstract syntax etc..
 - [ ] Type checker for linear typing.
 - [ ] Interpreter reversible semantics.
 - [ ] Reaching definitions analysis (Nilson and Nilson but as a type-and-effect system).
