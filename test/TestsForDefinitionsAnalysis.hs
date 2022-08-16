@@ -112,21 +112,21 @@ haveConflicts =
       "data nat  = [zero] [suc nat].\n"          ++
       "data pair = [pair nat nat].\n"            ++
       "main swap."
-  , testCase "Multiple definitions of datatype (consecutive)" $
-    hasConflicts [MultipleDefinitionsOfConstructor "pair"]    $
-      "data nat  = [zero] [suc nat]."                         ++
-      "data pair = [pair nat nat]."                           ++
-      "data foo  = [pair nat nat]."                           ++
-      "first ([pair m n] : pair) : pair = m."                 ++
+  , testCase "Multiple definitions of constructor (consecutive)" $
+    hasConflicts [MultipleDefinitionsOfConstructor "pair"]       $
+      "data nat  = [zero] [suc nat]."                            ++
+      "data pair = [pair nat nat]."                              ++
+      "data foo  = [pair nat nat]."                              ++
+      "first ([pair m n] : pair) : pair = m."                    ++
       "main first."
-  , testCase "Multiple definitions of datatype (appart)"  $
-    hasConflicts [MultipleDefinitionsOfConstructor "suc"] $
-      "data pair = [pair nat nat] [suc nat]."             ++
-      "first  ([pair m n] : pair) : pair = m."            ++
-      "second ([pair m n] : pair) : pair = n."            ++
-      "data nat  = [zero] [suc nat]."                     ++
+  , testCase "Multiple definitions of constructor (appart)"  $
+    hasConflicts [MultipleDefinitionsOfConstructor "suc"]    $
+      "data pair = [pair nat nat] [suc nat]."                ++
+      "first  ([pair m n] : pair) : pair = m."               ++
+      "second ([pair m n] : pair) : pair = n."               ++
+      "data nat  = [zero] [suc nat]."                        ++
       "main first."
-  , testCase "Multiple definitions of datatype (several)" $
+  , testCase "Multiple definitions of constructor (several)" $
     hasConflicts [ MultipleDefinitionsOfConstructor "zero"
                  , MultipleDefinitionsOfConstructor "pair"
                  ]                                    $
