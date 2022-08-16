@@ -183,6 +183,34 @@ lookupTests =
     swapProgram
   , testCase "lookup corresponding type for a non-existing datatype definition" $
     constructorDoesNotExists "one" swapProgram
+  , testCase "lookup under ambiguous datatype name" $
+    constructorDoesNotExists "pair" $
+      "data int  = [zero] [pos nat] [negsuc nat].\n"  ++
+      "data tuple = [pair nat nat].\n"                ++
+      "first  ([pair m n] : pair) : pair = m.\n"      ++
+      "second ([pair m n] : pair) : pair = n.\n"      ++
+      "swap (p : pair) : pair = \n"                   ++
+      "  case first p : nat of \n"                    ++
+      "  ; a -> \n"                                   ++
+      "      case second p : nat of \n"               ++
+      "      ; b -> [pair b a].\n"                    ++
+      "data nat  = [zero] [suc nat].\n"               ++
+      "data pair = [pair nat nat].\n"                 ++
+      "main swap."
+  , testCase "lookup unambiguous datatype name" $
+    constructorExists ( "pair" , "pair" ) $
+      "data int  = [zero] [pos nat] [negsuc nat].\n"  ++
+      "data pair = [pair nat nat].\n"                ++
+      "first  ([pair m n] : pair) : pair = m.\n"      ++
+      "second ([pair m n] : pair) : pair = n.\n"      ++
+      "swap (p : pair) : pair = \n"                   ++
+      "  case first p : nat of \n"                    ++
+      "  ; a -> \n"                                   ++
+      "      case second p : nat of \n"               ++
+      "      ; b -> [pair b a].\n"                    ++
+      "data nat  = [zero] [suc nat].\n"               ++
+      "data pair = [pair nat nat].\n"                 ++
+      "main swap."
   ]
 
 -- * Utility
