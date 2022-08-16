@@ -8,6 +8,7 @@ As the paper currently suggests that bi-directional first match can be extended 
 
 ## TODO:
 - [x] Abstract syntax etc..
+- [x] Basic program validity checks to be assumed further.
 - [ ] Type checker for linear typing.
 - [ ] Interpreter reversible semantics.
 - [ ] Reaching definitions analysis (Nilson and Nilson but as a type-and-effect system).
@@ -16,6 +17,8 @@ As the paper currently suggests that bi-directional first match can be extended 
 - [ ] Control flow analysis (CFA1 from Nilson and Nilson).
 - [x] Per module property based testing.
 - [x] CI/CD.
+- [ ] Desugaring program transformation.
+- [ ] Template polymorphism.
 - [ ] Consistency type checking.
 - [ ] Limited Invertible Semantics based on Reaching Definitions
 - [ ] Test that the invertible semantics is a conservative extension of the reversible one.
