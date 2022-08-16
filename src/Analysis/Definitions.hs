@@ -22,10 +22,10 @@ data ConflictingDefinitions
   = MultipleDefinitionsOfFunction    F
   | MultipleDefinitionsOfDatatype    T
   | MultipleDefinitionsOfConstructor C
-  deriving (Eq)
+  deriving (Eq, Ord, Show)
 
 duplicateDefinitionsAnalysis :: Program a -> [ConflictingDefinitions]
-duplicateDefinitionsAnalysis p =
+duplicateDefinitionsAnalysis p = nub $
     (MultipleDefinitionsOfFunction    <$> fs) ++
     (MultipleDefinitionsOfDatatype    <$> ds) ++
     (MultipleDefinitionsOfConstructor <$> cs)

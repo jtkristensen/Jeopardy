@@ -7,6 +7,7 @@ import Data.List
 import Data.Ord
 
 import TestsForCoreParser
+import TestsForDefinitionsAnalysis
 
 main = defaultMain tests
 
@@ -14,4 +15,5 @@ tests :: TestTree
 tests =
   testGroup "Jeopardy - main test suite."
     [ coreParserTests
+    , definitionsAnalysisTests
     ]
