@@ -66,3 +66,15 @@ instance CanonicalForm Pattern where
 
 instance CanonicalForm Term where
   canonical = Pattern . canonical
+
+class MetaData m where
+  meta :: m a -> a
+
+instance MetaData Pattern where
+  meta (Variable      _ a) = a
+  meta (Constructor _ _ a) = a
+
+instance MetaData Term where
+  meta (Pattern         p) = meta p
+  meta (Application _ _ a) = a
+  meta (Case        _ _ a) = a

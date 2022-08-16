@@ -17,4 +17,6 @@ Copenhagen 2022.
 
 module Analysis.TypeChecking.Linear where
 
-import Core.Syntax
+-- import Core.Syntax
+-- import Analysis.Definitions
+

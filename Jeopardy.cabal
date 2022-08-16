@@ -34,6 +34,7 @@ library
       Semantics.Invertible
       Semantics.Reversible
       Syntax
+      Transformations.Desugar
   other-modules:
       Paths_Jeopardy
   hs-source-dirs:
