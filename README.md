@@ -14,8 +14,8 @@ As the paper currently suggests that bi-directional first match can be extended 
 - [ ] Use reaching definitions in online partial evaluation (instead of in match-policy)?
 - [ ] Bidirectional online partial evaluator "(RD |- term -| Gamma) ~> term".
 - [ ] Control flow analysis (CFA1 from Nilson and Nilson).
-- [ ] Per module property based testing.
-- [ ] CI/CD.
+- [x] Per module property based testing.
+- [x] CI/CD.
 - [ ] Consistency type checking.
 - [ ] Limited Invertible Semantics based on Reaching Definitions
 - [ ] Test that the invertible semantics is a conservative extension of the reversible one.
