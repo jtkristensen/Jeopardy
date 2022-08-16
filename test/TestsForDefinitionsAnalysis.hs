@@ -112,6 +112,36 @@ haveConflicts =
       "data nat  = [zero] [suc nat].\n"          ++
       "data pair = [pair nat nat].\n"            ++
       "main swap."
+  , testCase "Multiple definitions of datatype (consecutive)" $
+    hasConflicts [MultipleDefinitionsOfConstructor "pair"]    $
+      "data nat  = [zero] [suc nat]."                         ++
+      "data pair = [pair nat nat]."                           ++
+      "data foo  = [pair nat nat]."                           ++
+      "first ([pair m n] : pair) : pair = m."                 ++
+      "main first."
+  , testCase "Multiple definitions of datatype (appart)"  $
+    hasConflicts [MultipleDefinitionsOfConstructor "suc"] $
+      "data pair = [pair nat nat] [suc nat]."             ++
+      "first  ([pair m n] : pair) : pair = m."            ++
+      "second ([pair m n] : pair) : pair = n."            ++
+      "data nat  = [zero] [suc nat]."                     ++
+      "main first."
+  , testCase "Multiple definitions of datatype (several)" $
+    hasConflicts [ MultipleDefinitionsOfConstructor "zero"
+                 , MultipleDefinitionsOfConstructor "pair"
+                 ]                                    $
+      "data int  = [zero] [pos nat] [negsuc nat].\n"  ++
+      "data tuple = [pair nat nat].\n"                ++
+      "first  ([pair m n] : pair) : pair = m.\n"      ++
+      "second ([pair m n] : pair) : pair = n.\n"      ++
+      "swap (p : pair) : pair = \n"                   ++
+      "  case first p : nat of \n"                    ++
+      "  ; a -> \n"                                   ++
+      "      case second p : nat of \n"               ++
+      "      ; b -> [pair b a].\n"                    ++
+      "data nat  = [zero] [suc nat].\n"               ++
+      "data pair = [pair nat nat].\n"                 ++
+      "main swap."
   ]
 
 
