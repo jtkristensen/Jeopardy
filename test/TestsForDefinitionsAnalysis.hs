@@ -22,7 +22,21 @@ definitionsAnalysisTests =
   testGroup "Unit tests checking for properties about definitions."
     [ areConflictFree
     , haveConflicts
+    , lookupTests
     ]
+
+swapProgram :: Source
+swapProgram =
+  "data nat  = [zero] [suc nat].\n"          ++
+  "data pair = [pair nat nat].\n"            ++
+  "first  ([pair m n] : pair) : pair = m.\n" ++
+  "second ([pair m n] : pair) : pair = n.\n" ++
+  "swap (p : pair) : pair = \n"              ++
+  "  case first p : nat of \n"               ++
+  "  ; a -> \n"                              ++
+  "      case second p : nat of \n"          ++
+  "      ; b -> [pair b a].\n"               ++
+  "main swap."
 
 areConflictFree :: TestTree
 areConflictFree =
@@ -34,17 +48,7 @@ areConflictFree =
       "first ([pair m n] : pair) : pair = m."    ++
       "main first."
   , testCase "The swap program"                  $
-    isConflictFree                               $
-      "data nat  = [zero] [suc nat].\n"          ++
-      "data pair = [pair nat nat].\n"            ++
-      "first  ([pair m n] : pair) : pair = m.\n" ++
-      "second ([pair m n] : pair) : pair = n.\n" ++
-      "swap (p : pair) : pair = \n"              ++
-      "  case first p : nat of \n"               ++
-      "  ; a -> \n"                              ++
-      "      case second p : nat of \n"          ++
-      "      ; b -> [pair b a].\n"               ++
-      "main swap."
+    isConflictFree swapProgram
   ]
 
 haveConflicts :: TestTree
@@ -144,6 +148,42 @@ haveConflicts =
       "main swap."
   ]
 
+lookupTests :: TestTree
+lookupTests =
+  testGroup "Tests about lookups in the program text."
+  [ testCase "lookup an existing function definition" $
+    functionExists
+    ( "swap"
+    , (Variable "p" (), "pair")
+    , (Case (Application (Conventional "first" ()) (Variable "p" ()) (),"nat")
+         [( Variable "a" ()
+          , Case (Application (Conventional "second" ()) (Variable "p" ()) (), "nat")
+              [(Variable "b" ()
+               ,Pattern (Constructor "pair" [Variable "b" (),Variable "a" ()] ()))] ())] (), "pair"))
+    swapProgram
+  , testCase "lookup a non-existing function definition" $
+    functionDoesNotExists "multiply" swapProgram
+  , testCase "lookup an existing datatype definition" $
+    datatypeExists
+    ( "nat", [("zero", []), ("suc", ["nat"])] )
+    swapProgram
+  , testCase "lookup a non-existing datatype definition" $
+    functionDoesNotExists "tuple" swapProgram
+  , testCase "lookup suc constructor in the swap program" $
+    constructorExists
+    ( "suc", "nat" )
+    swapProgram
+  , testCase "lookup zero constructor in the swap program" $
+    constructorExists
+    ( "zero", "nat" )
+    swapProgram
+  , testCase "lookup pair constructor in the swap program" $
+    constructorExists
+    ( "pair", "pair" )
+    swapProgram
+  , testCase "lookup corresponding type for a non-existing datatype definition" $
+    constructorDoesNotExists "one" swapProgram
+  ]
 
 -- * Utility
 
@@ -153,10 +193,41 @@ run p = runParser p () "<no-source-file>"
 strip :: Functor f => f a -> f ()
 strip = fmap $ const ()
 
-isConflictFree :: String -> Assertion
+functionExists :: (F, (Pattern (), T), (Term (), T)) -> Source -> Assertion
+functionExists (fname, pattern_, term_) program_ =
+  lookupFunction fname . strip <$> run program program_
+  @?= Right (Just (pattern_, term_))
+
+functionDoesNotExists :: F -> Source -> Assertion
+functionDoesNotExists fname program_ =
+  lookupFunction fname . strip <$> run program program_
+  @?= Right Nothing
+
+datatypeExists :: (T, [(C, [T])]) -> Source -> Assertion
+datatypeExists (dname, cts) program_ =
+  lookupDatatype dname . strip <$> run program program_
+  @?= Right (Just cts)
+
+datatypeDoesNotExists :: T -> Source -> Assertion
+datatypeDoesNotExists dname program_ =
+  lookupDatatype dname . strip <$> run program program_
+  @?= Right Nothing
+
+constructorExists :: (C, T) -> Source -> Assertion
+constructorExists (cname, t) program_ =
+  lookupConstructorType cname . strip <$> run program program_
+  @?= Right (Just t)
+
+constructorDoesNotExists :: T -> Source -> Assertion
+constructorDoesNotExists cname program_ =
+  lookupConstructorType cname . strip <$> run program program_
+  @?= Right Nothing
+
+
+isConflictFree :: Source -> Assertion
 isConflictFree = hasConflicts []
 
-hasConflicts :: [ConflictingDefinitions] -> String -> Assertion
+hasConflicts :: [ConflictingDefinitions] -> Source -> Assertion
 hasConflicts cs s =
       sort . duplicateDefinitionsAnalysis . strip <$> run program s
   @?= return (sort cs)
