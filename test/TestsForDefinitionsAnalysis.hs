@@ -97,8 +97,8 @@ haveConflicts =
       "data nat  = [zero] [suc nat]."                    ++
       "main first."
   , testCase "Multiple definitions of datatype (several)" $
-    hasConflicts [ MultipleDefinitionsOfFunction "pair"
-                 , MultipleDefinitionsOfFunction "nat"
+    hasConflicts [ MultipleDefinitionsOfDatatype "pair"
+                 , MultipleDefinitionsOfDatatype "nat"
                  ] $
       "data nat  = [zero1] [suc1 nat].\n"        ++
       "data pair = [pair1 nat nat].\n"           ++

@@ -52,9 +52,9 @@ datatypeNames _                  = []
 
 -- The names of all data constructors in a program.
 constructorNames :: Program a -> [C]
-constructorNames p =
-  do t <- datatypeNames p
-     fst <$> fromJust (lookupDatatype t p)
+constructorNames (Function _ _ _ p) = constructorNames p
+constructorNames (Data     _ cts p) = map fst cts ++ constructorNames p
+constructorNames _                  = []
 
 -- Looks up a functions definitio. Assumes no duplicated definitions.
 lookupFunction :: F -> Program a -> Maybe ((Pattern a, T), (Term a, T))
