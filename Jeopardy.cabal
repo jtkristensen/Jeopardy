@@ -28,6 +28,7 @@ library
   exposed-modules:
       Analysis.Definitions
       Analysis.Formalities
+      Analysis.ReachingDefinitions
       Analysis.TypeChecking.Linear
       Core.Parser
       Core.Syntax

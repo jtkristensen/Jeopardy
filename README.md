@@ -7,13 +7,23 @@ As the paper currently suggests that bi-directional first match can be extended 
 [![tests](https://github.com/jtkristensen/Jeopardy/actions/workflows/main-test.yaml/badge.svg)](https://github.com/jtkristensen/Jeopardy/actions/workflows/main-test.yaml)
 
 ## TODO:
-- [x] Abstract syntax etc..
+- [x] Abstract syntax etc.
 - [x] Basic program validity checks to be assumed further.
+- [ ] All fresh variables transformation (produce meta data about old names as biproduct).
+- [ ] Transformation that introduces labels everywhere.
+- [ ] Graph where labels are vertices, but edges are annotated by labels
+      (where a function gives control to another function.
+- [ ] Available expressions analysis (Nilson and Nilson but as a type-and-effect system).
+- [ ] At call sites, it is determined what things inside the function call
+      can be decided by the lables on the arrow.
+- [ ] Decide case-ortogonality with help of subterms.
+- [ ] Use available expressions in online partial evaluation (instead of in match-policy)?
+- [ ] Bidirectional online partial evaluator "(RD |- term -| Gamma) ~> term".
+- [ ] Rewrite inverse programs in forward style by offline partial evaluation?
+- [ ] Insert constraints about equality checks as guards for pattern
+      matching (e.g fib^-1 (n, fib(n))).
 - [ ] Type checker for linear typing.
 - [ ] Interpreter reversible semantics.
-- [ ] Reaching definitions analysis (Nilson and Nilson but as a type-and-effect system).
-- [ ] Use reaching definitions in online partial evaluation (instead of in match-policy)?
-- [ ] Bidirectional online partial evaluator "(RD |- term -| Gamma) ~> term".
 - [ ] Control flow analysis (CFA1 from Nilson and Nilson).
 - [x] Per module property based testing.
 - [x] CI/CD.
