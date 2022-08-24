@@ -34,6 +34,8 @@ library
       Core.Syntax
       Semantics.Invertible
       Semantics.Reversible
+      Transformations.Labels
+      Transformations.ProgramEnvironment
   other-modules:
       Paths_Jeopardy
   hs-source-dirs:
