@@ -232,6 +232,7 @@ datatypeExists (dname, cts) program =
   lookupDatatype dname . strip <$> parseString program_ program
   @?= Right (Just cts)
 
+-- TODO : improve tests with cases for this.
 -- datatypeDoesNotExists :: T -> Source -> Assertion
 -- datatypeDoesNotExists dname program_ =
 --   lookupDatatype dname . strip <$> run program program_
