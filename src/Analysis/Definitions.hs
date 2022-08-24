@@ -18,12 +18,14 @@ import Core.Syntax
 import Data.List   (nub, (\\))
 import Data.Maybe  (fromJust)
 
+-- Possible conflicts regarding definitions of equations.
 data ConflictingDefinitions
-  = MultipleDefinitionsOfFunction    F
-  | MultipleDefinitionsOfDatatype    T
-  | MultipleDefinitionsOfConstructor C
-  deriving (Eq, Ord, Show)
+  = MultipleDefinitionsOfFunction    F --    f _ = _ . f _ = _ . ..
+  | MultipleDefinitionsOfDatatype    T --    data t = .. data t = ..
+  | MultipleDefinitionsOfConstructor C --    data _ = [c ..] .. data _ = [c ..].
+  deriving (Eq, Ord, Show)             -- OR data _ = [c ..] [c ..].
 
+-- Returns a list of all definitional violations commited by a program.
 duplicateDefinitionsAnalysis :: Program a -> [ConflictingDefinitions]
 duplicateDefinitionsAnalysis p = nub $
     (MultipleDefinitionsOfFunction    <$> fs) ++

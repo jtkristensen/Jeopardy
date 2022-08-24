@@ -27,9 +27,9 @@ source-repository head
 library
   exposed-modules:
       Analysis.Definitions
-      Analysis.Formalities
       Analysis.ReachingDefinitions
       Analysis.TypeChecking.Linear
+      Analysis.TypeChecking.Ordinary
       Core.Parser
       Core.Syntax
       Semantics.Invertible

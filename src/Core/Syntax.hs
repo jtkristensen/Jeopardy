@@ -37,7 +37,8 @@ data Program a
   deriving (Functor, Eq, Show)
 
 data Pattern                  a
-  = Variable X                a
+  = Variable    X             a
+  | Existential X             a
   | Constructor C [Pattern a] a
   deriving (Functor, Eq, Show)
 
@@ -72,6 +73,7 @@ class MetaData m where
 
 instance MetaData Pattern where
   meta (Variable      _ a) = a
+  meta (Existential   _ a) = a
   meta (Constructor _ _ a) = a
 
 instance MetaData Term where
