@@ -6,6 +6,8 @@ where
 import Test.Tasty
 import Test.Tasty.HUnit
 
+import Control.Monad (void)
+
 import Core.Syntax
 import Core.Parser
 import Data.Either
@@ -83,14 +85,14 @@ positivePatterns =
         Right (Existential x _) ->
           let inner_construction = "[" ++ x ++ " _]"
           in case parseString pattern_ inner_construction of
-               Right (Constructor x [Existential y _] _) ->
+               Right (Constructor z [Existential y _] _) | x == z ->
                  let final_construction = "[_ " ++ x ++ " " ++ y ++ "]"
                  in case parseString pattern_ final_construction of
                       Right (Constructor "_" [Existential a _, Existential b _] _) ->
                         assertBool (a ++ " should differ from " ++ b) (a /= b)
                       _ -> assertBool ("unable to parse " ++ final_construction) False
                _ -> assertBool ("unable to parse " ++ inner_construction) False
-        _ -> assertBool ("unable to parse _") False
+        _ -> assertBool "unable to parse _" False
     , testCase "Variable Pattern followed by space." $
       positive pattern_
         "x " $
@@ -138,10 +140,10 @@ negativePatterns =
 -- * Utility
 
 strip :: Functor f => f a -> f ()
-strip = fmap $ const ()
+strip = void
 
-positive :: (Functor f, Eq (f ()), Show (f ())) => Parser (f a) -> String -> (f ()) -> Assertion
-positive p s a = (strip <$> parseString p s) @?= (return (strip a))
+positive :: (Functor f, Eq (f ()), Show (f ())) => Parser (f a) -> String -> f () -> Assertion
+positive p s a = strip <$> parseString p s @?= return (strip a)
 
 negative :: Functor f => Parser (f a) -> String -> Assertion
 negative p s = assertBool "should not parse" $ isLeft $ strip <$> parseString p s

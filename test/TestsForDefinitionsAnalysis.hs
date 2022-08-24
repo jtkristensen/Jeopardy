@@ -9,6 +9,8 @@ import Test.Tasty.HUnit
 import Core.Syntax
 import Core.Parser (Source, parseString, program_)
 
+import Control.Monad (void)
+
 import Analysis.Definitions
 
 -- import Data.Either
@@ -213,7 +215,7 @@ lookupTests =
 -- * Utility
 
 strip :: Functor f => f a -> f ()
-strip = fmap $ const ()
+strip = void
 
 functionExists :: (F, (Pattern (), T), (Term (), T)) -> Source -> Assertion
 functionExists (fname, pattern_, term_) program =
