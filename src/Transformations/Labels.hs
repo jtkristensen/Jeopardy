@@ -11,19 +11,20 @@ Portability : POSIX
 -}
 
 module Transformations.Labels
-  ( fresh , annotateWithIntegers )
+  ( fresh
+  , annotateWithIntegers )
 where
 
 import Core.Syntax
-import Control.Monad.State (State, evalState, get, modify)
-import Control.Arrow (second)
 
+import Control.Arrow       ( second )
+import Control.Monad.State ( modify, get, State, evalState )
+
+-- Annotates a thing program with labels generated from unique integer labels.
 fresh :: (Integer -> label) -> (Program a -> Program (a, label))
 fresh f p = second f <$> evalState (annotateWithIntegers p) 0
 
-bump :: State Integer Integer
-bump = get >>= \i -> modify (+1) >> return i
-
+-- Annotates a thing `m` with unique integer labels.
 class IntegerAnnotatable m where
   annotateWithIntegers :: m a -> State Integer (m (a, Integer))
 
@@ -39,7 +40,7 @@ instance IntegerAnnotatable Program where
     Main <$> annotateWithIntegers i
 
 instance IntegerAnnotatable Pattern where
-  annotateWithIntegers (Variable x a)    = Variable x    . (,) a  <$> bump
+  annotateWithIntegers (Variable x a)    = Variable x    . (,) a <$> bump
   annotateWithIntegers (Existential x a) = Existential x . (,) a <$> bump
   annotateWithIntegers (Constructor c ps a) =
     do i   <- bump
@@ -68,3 +69,8 @@ instance IntegerAnnotatable Inversion where
   annotateWithIntegers (Invert i a) =
     do j <- bump
        Invert <$> annotateWithIntegers i <*> pure (a, j)
+
+-- Simple utility.
+
+bump :: State Integer Integer
+bump = get >>= \i -> modify (+1) >> return i
