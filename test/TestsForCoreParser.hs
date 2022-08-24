@@ -8,7 +8,6 @@ import Test.Tasty.HUnit
 
 import Core.Syntax
 import Core.Parser
-import Text.Parsec
 import Data.Either
 
 coreParserTests :: TestTree
@@ -23,14 +22,14 @@ positivePrograms :: TestTree
 positivePrograms =
   testGroup "Positive tests for parsing programs"
   [ testCase "Identity function." $
-    positive program
+    positive program_
       "id (x : nat) : nat = x . main id ." $
     Function "id"
       (          Variable "x" (), "nat")
       (Pattern $ Variable "x" (), "nat") $
     Main (Conventional "id" ())
   , testCase "Swap program" $
-    positive program
+    positive program_
       ( "data nat = [suc nat] [zero].\n"  ++
         "data pair = [pair nat nat] .\n " ++
         "first ([pair a b] :pair): nat= a\n." ++
@@ -69,10 +68,10 @@ positivePatterns =
       positive pattern_
         "_x" $
       Existential "_x" ()
-    -- , testCase "Underscore Pattern" $
-    --   positive pattern_
-    --     "_" $
-    --   Existential "x" ()
+    , testCase "Underscore Pattern" $
+      case parseString pattern_ "_" of
+        Right (Existential _ _) -> return ()
+        _                       -> positive pattern_ "_" $ Existential "<something>" ()
     , testCase "Variable Pattern followed by space." $
       positive pattern_
         "x " $
@@ -119,15 +118,12 @@ negativePatterns =
 
 -- * Utility
 
-run :: Parser a -> Source -> Either ParseError a
-run p = runParser p () "<no-source-file>"
-
 strip :: Functor f => f a -> f ()
 strip = fmap $ const ()
 
 positive :: (Functor f, Eq (f ()), Show (f ())) => Parser (f a) -> String -> (f ()) -> Assertion
-positive p s a = (strip <$> run p s) @?= (return (strip a))
+positive p s a = (strip <$> parseString p s) @?= (return (strip a))
 
 negative :: Functor f => Parser (f a) -> String -> Assertion
-negative p s = assertBool "should not parse" $ isLeft $ strip <$> run p s
+negative p s = assertBool "should not parse" $ isLeft $ strip <$> parseString p s
 

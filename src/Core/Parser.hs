@@ -14,22 +14,32 @@ article, `Jeopardy : an invertible programming language`, submitted to the
 
 -}
 
-module Core.Parser where
+module Core.Parser
+  ( Source, Parser, ParseError, parseString
+  , program_, pattern_, term_, inversion_
+  )
+where
 
 import Core.Syntax
 import Text.Parsec
-import Control.Monad (void)
+import Control.Monad  (void)
+import Data.Bifunctor (bimap, second)
 
 -- Shorthands.
 type Source      = String
-type ParserState = ()
+type ParserState = (Integer, [X])
 type Parser      = Parsec Source ParserState
 type Info        = (SourcePos, SourcePos)
 
--- * Implementation
+-- * Usage:
 
-program :: Parser (Program Info)
-program =
+parseString :: Parser a -> Source -> Either ParseError a
+parseString p = runParser p (0, []) "<no-such-file>"
+
+-- * Implementation:
+
+program_ :: Parser (Program Info)
+program_ =
   do lexeme $ return ()
      ds <- many1 (choice $ map try [ datatypeDefinition, functionDefinition ])
      i  <- mainInversionDeclaration
@@ -71,8 +81,12 @@ mainInversionDeclaration =
 
 pattern_ :: Parser (Pattern Info)
 pattern_ = choice $ map info
-  [ Variable    <$> name
-  , brackets (Constructor <$> name <*> many pattern_)
+  [ brackets (Constructor <$> name <*> many pattern_)
+  , do x <- name
+       case x of
+         "_"     -> Existential <$> fresh
+         '_' : _ -> Existential <$> pure x
+         _       -> pure $ Variable x
   ]
 
 term_ :: Parser (Term Info)
@@ -103,15 +117,28 @@ inversion_ = choice
   , parens $ keyword "invert" >> inversion_
   ]
 
--- * Utility
+-- * Utility:
+
+-- Supplies a fresh existential identifier.
+fresh :: Parser Name
+fresh =
+  do (i, xs) <- getState
+     let  x = "_x" ++ show i
+     y <- if   x `elem` xs
+          then fresh
+          else return x
+     modifyState $ bimap (+1) (y:)
+     return y
 
 -- Parses a name.
 name :: Parser Name
 name = try $
   do n <- lexeme $ many1 charAllowedInName
-     if     n `notElem` reserved
-       then return n
-       else fail $ "Unexpected keyword " ++ n
+     if     isReserved n
+       then fail $ "Unexpected keyword " ++ n
+       else return ()
+     modifyState $ second (n:)
+     return n
 
 -- Adds source position information to a parser that consumes it.
 info :: Parser (Info -> a) -> Parser a

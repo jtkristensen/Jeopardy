@@ -7,9 +7,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 import Core.Syntax
-import Core.Parser (Source, Parser, program)
-
-import Text.Parsec
+import Core.Parser (Source, parseString, program_)
 
 import Analysis.Definitions
 
@@ -214,25 +212,22 @@ lookupTests =
 
 -- * Utility
 
-run :: Parser a -> Source -> Either ParseError a
-run p = runParser p () "<no-source-file>"
-
 strip :: Functor f => f a -> f ()
 strip = fmap $ const ()
 
 functionExists :: (F, (Pattern (), T), (Term (), T)) -> Source -> Assertion
-functionExists (fname, pattern_, term_) program_ =
-  lookupFunction fname . strip <$> run program program_
+functionExists (fname, pattern_, term_) program =
+  lookupFunction fname . strip <$> parseString program_ program
   @?= Right (Just (pattern_, term_))
 
 functionDoesNotExists :: F -> Source -> Assertion
-functionDoesNotExists fname program_ =
-  lookupFunction fname . strip <$> run program program_
+functionDoesNotExists fname program =
+  lookupFunction fname . strip <$> parseString program_ program
   @?= Right Nothing
 
 datatypeExists :: (T, [(C, [T])]) -> Source -> Assertion
-datatypeExists (dname, cts) program_ =
-  lookupDatatype dname . strip <$> run program program_
+datatypeExists (dname, cts) program =
+  lookupDatatype dname . strip <$> parseString program_ program
   @?= Right (Just cts)
 
 -- datatypeDoesNotExists :: T -> Source -> Assertion
@@ -241,13 +236,13 @@ datatypeExists (dname, cts) program_ =
 --   @?= Right Nothing
 
 constructorExists :: (C, T) -> Source -> Assertion
-constructorExists (cname, t) program_ =
-  lookupConstructorType cname . strip <$> run program program_
+constructorExists (cname, t) program =
+  lookupConstructorType cname . strip <$> parseString program_ program
   @?= Right (Just t)
 
 constructorDoesNotExists :: T -> Source -> Assertion
-constructorDoesNotExists cname program_ =
-  lookupConstructorType cname . strip <$> run program program_
+constructorDoesNotExists cname program =
+  lookupConstructorType cname . strip <$> parseString program_ program
   @?= Right Nothing
 
 
@@ -256,5 +251,5 @@ isConflictFree = hasConflicts []
 
 hasConflicts :: [ConflictingDefinitions] -> Source -> Assertion
 hasConflicts cs s =
-      sort . duplicateDefinitionsAnalysis . strip <$> run program s
+      sort . duplicateDefinitionsAnalysis . strip <$> parseString program_ s
   @?= return (sort cs)
