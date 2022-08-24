@@ -7,7 +7,8 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 import Core.Syntax
-import Core.Parser (Source, parseString, program_)
+import Core.Parser     ( Source, parseString, program_ )
+import ExamplePrograms ( swapProgram, firstProgram )
 
 import Control.Monad (void)
 
@@ -24,30 +25,11 @@ definitionsAnalysisTests =
     , lookupTests
     ]
 
-swapProgram :: Source
-swapProgram =
-  "data nat  = [zero] [suc nat].\n"          ++
-  "data pair = [pair nat nat].\n"            ++
-  "first  ([pair m n] : pair) : pair = m.\n" ++
-  "second ([pair m n] : pair) : pair = n.\n" ++
-  "swap (p : pair) : pair = \n"              ++
-  "  case first p : nat of \n"               ++
-  "  ; a -> \n"                              ++
-  "      case second p : nat of \n"          ++
-  "      ; b -> [pair b a].\n"               ++
-  "main swap."
-
 areConflictFree :: TestTree
 areConflictFree =
   testGroup "These programs are definitionally conflict free."
-  [ testCase "The first program"                 $
-    isConflictFree                               $
-      "data nat  = [zero] [suc nat]."            ++
-      "data pair = [pair nat nat]."              ++
-      "first ([pair m n] : pair) : pair = m."    ++
-      "main first."
-  , testCase "The swap program"                  $
-    isConflictFree swapProgram
+  [ testCase "The first program" $ isConflictFree firstProgram
+  , testCase "The swap program"  $ isConflictFree swapProgram
   ]
 
 haveConflicts :: TestTree

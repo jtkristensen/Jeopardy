@@ -26,6 +26,7 @@ source-repository head
 
 library
   exposed-modules:
+      Analysis.ArgumentsAndCalls
       Analysis.Definitions
       Analysis.TypeChecking.Linear
       Analysis.TypeChecking.Ordinary
@@ -69,6 +70,8 @@ test-suite Jeopardy-test
   type: exitcode-stdio-1.0
   main-is: Harness.hs
   other-modules:
+      ExamplePrograms
+      TestsForArgumentsAndCallsAnalysis
       TestsForCoreParser
       TestsForDefinitionsAnalysis
       Paths_Jeopardy
