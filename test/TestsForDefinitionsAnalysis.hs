@@ -7,17 +7,16 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 import Core.Syntax
-import Core.Parser
+import Core.Parser (Source, Parser, program)
 
 import Text.Parsec
-import Text.Parsec.Pos
-import Text.Parsec.Error
 
 import Analysis.Definitions
 
 -- import Data.Either
 import Data.List (sort)
 
+definitionsAnalysisTests :: TestTree
 definitionsAnalysisTests =
   testGroup "Unit tests checking for properties about definitions."
     [ areConflictFree
@@ -236,10 +235,10 @@ datatypeExists (dname, cts) program_ =
   lookupDatatype dname . strip <$> run program program_
   @?= Right (Just cts)
 
-datatypeDoesNotExists :: T -> Source -> Assertion
-datatypeDoesNotExists dname program_ =
-  lookupDatatype dname . strip <$> run program program_
-  @?= Right Nothing
+-- datatypeDoesNotExists :: T -> Source -> Assertion
+-- datatypeDoesNotExists dname program_ =
+--   lookupDatatype dname . strip <$> run program program_
+--   @?= Right Nothing
 
 constructorExists :: (C, T) -> Source -> Assertion
 constructorExists (cname, t) program_ =

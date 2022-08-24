@@ -9,10 +9,9 @@ import Test.Tasty.HUnit
 import Core.Syntax
 import Core.Parser
 import Text.Parsec
-import Text.Parsec.Pos
-import Text.Parsec.Error
 import Data.Either
 
+coreParserTests :: TestTree
 coreParserTests =
   testGroup "Unit tests about parsing the Core Jeopardy language."
     [ positivePatterns
@@ -66,6 +65,14 @@ positivePatterns =
       positive pattern_
         "x" $
       Variable "x" ()
+    , testCase "Existential Pattern" $
+      positive pattern_
+        "_x" $
+      Existential "_x" ()
+    -- , testCase "Underscore Pattern" $
+    --   positive pattern_
+    --     "_" $
+    --   Existential "x" ()
     , testCase "Variable Pattern followed by space." $
       positive pattern_
         "x " $
