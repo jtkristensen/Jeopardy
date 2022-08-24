@@ -100,7 +100,6 @@ negativeCallsToConstructorsAndFunctions =
                      ]
   ]
 
-
 fromExample :: Source -> (Program () -> Assertion) -> Assertion
 fromExample src f =
   case parseString program_ src of
