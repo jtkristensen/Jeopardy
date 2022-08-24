@@ -23,7 +23,7 @@ where
 import Core.Syntax
 import Text.Parsec
 import Control.Monad  (void, when)
-import Data.Bifunctor (bimap, second)
+import Data.Bifunctor (bimap, first, second)
 
 -- Shorthands.
 type Source      = String
@@ -125,7 +125,7 @@ fresh =
   do (i, xs) <- getState
      let  x = "_x" ++ show i
      y <- if   x `elem` xs
-          then fresh
+          then modifyState (first (+1)) >> fresh
           else return x
      modifyState $ bimap (+1) (y:)
      return y

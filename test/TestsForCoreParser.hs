@@ -53,7 +53,10 @@ positivePrograms =
       (Case (Application (Conventional "first" ()) (Variable "p" ()) (),"nat")
          [(Variable "a" (),
            Case (Application (Conventional "second" ()) (Variable "p" ()) (),"nat")
-             [(Variable "b" (), Pattern (Constructor "pair" [Variable "b" (),Variable "a" ()] ()))] ())] (),"pair") $
+             [ (Variable "b" ()
+              , Pattern (Constructor "pair" [Variable "b" (),Variable "a" ()] ()))
+             ] ())
+         ] (),"pair") $
     Main (Conventional "swap" ())
   ]
 
@@ -68,10 +71,26 @@ positivePatterns =
       positive pattern_
         "_x" $
       Existential "_x" ()
-    , testCase "Underscore Pattern" $
+    , let input = "_" in
+        testCase "Underscore Pattern" $
+        case parseString pattern_ input of
+          Right (Existential _ _) ->
+            return ()
+          _                       ->
+            positive pattern_ input $ Existential "<something>" ()
+    , testCase "Underscore should be replaced by globally unique names" $
       case parseString pattern_ "_" of
-        Right (Existential _ _) -> return ()
-        _                       -> positive pattern_ "_" $ Existential "<something>" ()
+        Right (Existential x _) ->
+          let inner_construction = "[" ++ x ++ " _]"
+          in case parseString pattern_ inner_construction of
+               Right (Constructor x [Existential y _] _) ->
+                 let final_construction = "[_ " ++ x ++ " " ++ y ++ "]"
+                 in case parseString pattern_ final_construction of
+                      Right (Constructor "_" [Existential a _, Existential b _] _) ->
+                        assertBool (a ++ " should differ from " ++ b) (a /= b)
+                      _ -> assertBool ("unable to parse " ++ final_construction) False
+               _ -> assertBool ("unable to parse " ++ inner_construction) False
+        _ -> assertBool ("unable to parse _") False
     , testCase "Variable Pattern followed by space." $
       positive pattern_
         "x " $
