@@ -22,7 +22,7 @@ where
 
 import Core.Syntax
 import Text.Parsec
-import Control.Monad  (void)
+import Control.Monad  (void, when)
 import Data.Bifunctor (bimap, second)
 
 -- Shorthands.
@@ -85,7 +85,7 @@ pattern_ = choice $ map info
   , do x <- name
        case x of
          "_"     -> Existential <$> fresh
-         '_' : _ -> Existential <$> pure x
+         '_' : _ -> pure $ Existential x
          _       -> pure $ Variable x
   ]
 
@@ -134,9 +134,7 @@ fresh =
 name :: Parser Name
 name = try $
   do n <- lexeme $ many1 charAllowedInName
-     if     isReserved n
-       then fail $ "Unexpected keyword " ++ n
-       else return ()
+     when (isReserved n) $ fail $ "Unexpected keyword " ++ n
      modifyState $ second (n:)
      return n
 
