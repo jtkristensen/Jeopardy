@@ -65,6 +65,12 @@ lookupFunction f (Function _ _ _ p)          = lookupFunction f p
 lookupFunction f (Data     _ _   p)          = lookupFunction f p
 lookupFunction _ _                           = Nothing
 
+-- Looks up the main inversion of a program.
+lookupMain :: Program a -> Inversion a
+lookupMain (Function _ _ _ program) = lookupMain program
+lookupMain (Data     _ _   program) = lookupMain program
+lookupMain (Main     inversion    ) = inversion
+
 -- Looks up a datatypes definition. Assumes no duplicated definitions.
 lookupDatatype :: T -> Program a -> Maybe [(C, [T])]
 lookupDatatype f (Function _ _ _ p)          = lookupDatatype f p
