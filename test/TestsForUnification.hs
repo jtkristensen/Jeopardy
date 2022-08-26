@@ -7,7 +7,7 @@ import Test.Tasty.QuickCheck as QC
 import Core.Syntax
 import Analysis.Unification
 
-import TestConfig          ( sizeOfGeneratedPatterns )
+import qualified TestConfig as Config
 import Control.Monad.State ( State , runState , get, put )
 
 -- *| Generators:
@@ -22,7 +22,7 @@ instance Arbitrary VariableSort where
     VariableSort <$> oneof (map return [Ordinary, Existential])
 
 instance Arbitrary AnyPattern where
-  arbitrary = resize sizeOfGeneratedPatterns $ AP <$> sized linearlySized
+  arbitrary = resize Config.sizeOfGeneratedPatterns $ AP <$> sized linearlySized
     where
       linearlySized = sizedPattern (\n -> n - 1)
       sizedPattern _ 0 =
@@ -73,7 +73,6 @@ instance Arbitrary APairOfStructurallyDifferentPatterns where
   arbitrary = APOSDP <$> (arbitrary >>= forceDifferent . unAPOSEP)
   shrink p  = APOSDP . unAPOP <$> shrink (APOP $ unAPOSDP p)
 
-
 -- *| Properties:
 
 type Unifies      = APairOfStructurallyEquvialentPatterns -> Bool
@@ -119,8 +118,10 @@ testsOnAPOSDP =
 qcProperties :: TestTree
 qcProperties =
   testGroup "Tested by Quick Check" $
-    map (uncurry QC.testProperty) testsOnAPOSEP ++
-    map (uncurry QC.testProperty) testsOnAPOSDP
+    map qc testsOnAPOSEP ++
+    map qc testsOnAPOSDP
+  where
+    qc (s, p) = uncurry QC.testProperty (s, withMaxSuccess Config.numberOfTests p)
 
 -- *| Exports:
 

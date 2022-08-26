@@ -4,3 +4,7 @@ module TestConfig where
 -- are larger, but they take significantly more time to run.
 sizeOfGeneratedPatterns :: Int
 sizeOfGeneratedPatterns = 8
+
+-- This decides how many testcases QuickCheck should run.
+numberOfTests :: Int
+numberOfTests = 100000
