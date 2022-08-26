@@ -12,7 +12,7 @@ Portability : POSIX
 
 module Analysis.DerivableExpressions where
 
-import Core.Syntax
-import Transformations.Labeling
+-- import Core.Syntax
+-- import Transformations.Labeling
 
-type TermsBy label = label -> Term label
+-- type TermsBy label = label -> Term label

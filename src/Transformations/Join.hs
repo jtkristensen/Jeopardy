@@ -14,7 +14,7 @@ Portability : POSIX
 
 module Transformations.Join where
 
-import Core.Syntax
+-- import Core.Syntax
 
 class Joinable m where
   join :: m a -> m b -> Maybe (m (a, b))

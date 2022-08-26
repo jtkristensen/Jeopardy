@@ -3,7 +3,6 @@ module TestsForUnification where
 
 import Test.Tasty
 import Test.Tasty.QuickCheck as QC
-import Test.Tasty.HUnit
 
 import Core.Syntax
 import Analysis.Unification
@@ -16,21 +15,29 @@ import Control.Monad.State ( State , runState , get, put )
 newtype AnyPattern
   = AP { unAP :: Pattern () }
 
+newtype VariableSort = VariableSort Sort
+
+instance Arbitrary VariableSort where
+  arbitrary =
+    VariableSort <$> oneof (map return [Ordinary, Existential])
+
 instance Arbitrary AnyPattern where
   arbitrary = resize sizeOfGeneratedPatterns $ AP <$> sized linearlySized
     where
       linearlySized = sizedPattern (\n -> n - 1)
-      sizedPattern f 0 =
-        do vname <- variableName
-           return (Variable Ordinary vname ())
+      sizedPattern _ 0 =
+        do vname             <- variableName
+           VariableSort sort <- arbitrary
+           return (Variable sort vname ())
       sizedPattern f n =
-        oneof
-          [ do vname <- variableName
-               return (Variable Ordinary vname ())
-          , do cname <- constructorName
-               ps    <- resize n $ listOf (sizedPattern f (f n))
-               return (Constructor cname ps ())
-          ]
+        do VariableSort sort <- arbitrary
+           oneof
+             [ do vname <- variableName
+                  return (Variable sort vname ())
+             , do cname <- constructorName
+                  ps    <- resize n $ listOf (sizedPattern f (f n))
+                  return (Constructor cname ps ())
+             ]
       constructorName = oneof $ return . return <$> ['A'..'Z']
       variableName    = oneof $ return . return <$> ['a'..'z']
   shrink (AP (Variable k _    _)) =
@@ -63,7 +70,7 @@ newtype APairOfStructurallyDifferentPatterns
   deriving (Show)
 
 instance Arbitrary APairOfStructurallyDifferentPatterns where
-  arbitrary = APOSDP <$> (arbitrary >>= forceDifferent . unAPOP)
+  arbitrary = APOSDP <$> (arbitrary >>= forceDifferent . unAPOSEP)
   shrink p  = APOSDP . unAPOP <$> shrink (APOP $ unAPOSDP p)
 
 
@@ -81,15 +88,15 @@ equivalentPatternsUnify (APOSEP (p, q)) =
 substitutionIsIdempotent :: Unifies
 substitutionIsIdempotent (APOSEP (p, q)) =
   case patternMatch p q of
-    (NoMatch  ) -> False
-    (MatchBy f) -> f p == f (f p)
+    NoMatch   -> False
+    MatchBy f -> f p == f (f p)
                 && f q == f (f q)
 
 substitutionUnifies :: Unifies
 substitutionUnifies (APOSEP (p, q)) =
   case patternMatch p q of
-    (NoMatch  ) -> False
-    (MatchBy f) -> f p == f q
+    NoMatch   -> False
+    MatchBy f -> f p == f q
 
 differentPatternsDontUnify :: DoesNotUnify
 differentPatternsDontUnify (APOSDP (p, q)) =
@@ -117,6 +124,7 @@ qcProperties =
 
 -- *| Exports:
 
+coreUnificationTests :: TestTree
 coreUnificationTests =
   testGroup "Unification without existentials."
     [ qcProperties
@@ -148,10 +156,10 @@ equivalentify =
           do (ps', qs') <- iter ps qs
              return (Constructor c ps' a, Constructor c qs' a)
           where
-            iter (p:s) (q:t) =
-              do (p',  q' ) <- forceEquivalent (p, q)
-                 (ps', qs') <- iter s t
-                 return (p' : ps', q' : qs')
+            iter (p':s) (q':t) =
+              do (p'',  q'' ) <- forceEquivalent (p', q')
+                 (p's', q's') <- iter s t
+                 return (p'' : p's', q'' : q's')
             iter _     _     = return ([], [])
         _ ->
           do (q', p') <- forceEquivalent (q, p)
@@ -181,13 +189,13 @@ equivalentify =
 isFreeIn :: Name -> Pattern a -> Pattern a
 isFreeIn x (Variable k y m)     | x == y = Variable k (y ++ "'") m
 isFreeIn x (Constructor c ps m)          = Constructor c ((x`isFreeIn`) <$> ps) m
-isFreeIn x p                             = p
+isFreeIn _ p                             = p
 
 -- Produces a pair of ununifiable patterns from a pair of (possibly)
 -- unifiable ones.
 forceDifferent :: (Pattern (), Pattern ()) -> Gen (Pattern (), Pattern())
-forceDifferent (Variable k x _, Variable k' y _)       =
-  oneof $ map return $
+forceDifferent (Variable k x _, Variable _ y _)  =
+  oneof $ map return
     [ (Constructor y [Variable k x ()] (), Variable k x ())
     , (Variable k x (), Constructor y [Variable k x ()] ())
     ]
@@ -207,12 +215,13 @@ forceDifferent (Constructor x ps _, Constructor y qs _) =
 -- Makes sure that the variable "x" occurs at least once.
 somethingEquals :: Name -> [Pattern ()] -> Gen [Pattern ()]
 somethingEquals x []
-  = return $ return $ Variable Ordinary x ()
-somethingEquals x ((Variable Ordinary y _) : rest)
+  = do VariableSort sort <- arbitrary
+       return $ return $ Variable sort x ()
+somethingEquals x ((Variable sort y _) : rest)
   = oneof
-      [ return (Variable Ordinary x () : rest)
+      [ return (Variable sort x () : rest)
       , do rest' <- somethingEquals x rest
-           return (Variable Ordinary y () : rest')
+           return (Variable sort y () : rest')
       ]
 somethingEquals x (Constructor c ps _ : rest)
   = oneof
