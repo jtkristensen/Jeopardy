@@ -34,7 +34,7 @@ library
       Core.Syntax
       Semantics.Invertible
       Semantics.Reversible
-      Transformations.Labels
+      Transformations.Labeling
       Transformations.ProgramEnvironment
   other-modules:
       Paths_Jeopardy

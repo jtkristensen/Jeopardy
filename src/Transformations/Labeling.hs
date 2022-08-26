@@ -1,6 +1,6 @@
 {-|
 
-Module      : Transformations.Labels
+Module      : Transformations.Labeling
 Description : Annotates programs with various kinds of labels.
 Author      : Joachim Tilsted Kristensen.
 Licence     : GNU GENERAL PUBLIC LICENSE
@@ -10,7 +10,7 @@ Portability : POSIX
 
 -}
 
-module Transformations.Labels
+module Transformations.Labeling
   ( fresh
   , annotateWithIntegers )
 where
