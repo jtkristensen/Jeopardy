@@ -73,7 +73,7 @@ instance Patterns Program where
     where (args, bodies) = unzip $ equations p
 
 instance Patterns Pattern where
-  patterns p@(Variable    _ _  _) = return p
+  patterns p@Variable{ }          = return p
   patterns p@(Constructor _ ps _) = p : (ps >>= patterns)
 
 instance Patterns Term where
