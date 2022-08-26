@@ -10,6 +10,7 @@ import Transformations.Labeling
 
 fromRight :: Either a b -> b
 fromRight (Right b) = b
+fromRight _         = undefined
 
 fibProgram :: Source
 fibProgram =
