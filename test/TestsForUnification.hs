@@ -10,6 +10,56 @@ import Analysis.Unification
 import qualified TestConfig as Config
 import Control.Monad.State ( State , runState , get, put )
 
+-- *| Properties:
+
+type Unifies      = APairOfStructurallyEquvialentPatterns -> Bool
+type DoesNotUnify = APairOfStructurallyDifferentPatterns  -> Bool
+
+equivalentPatternsUnify :: Unifies
+equivalentPatternsUnify (APOSEP (p, q)) =
+  case patternMatch p q of
+    NoMatch -> False
+    _       -> True
+
+substitutionIsIdempotent :: Unifies
+substitutionIsIdempotent (APOSEP (p, q)) =
+  case patternMatch p q of
+    NoMatch   -> False
+    MatchBy f ->   f p == f (f p)
+                && f q == f (f q)
+
+substitutionUnifies :: Unifies
+substitutionUnifies (APOSEP (p, q)) =
+  case patternMatch p q of
+    NoMatch   -> False
+    MatchBy f -> f p == f q
+
+differentPatternsDontUnify :: DoesNotUnify
+differentPatternsDontUnify (APOSDP (p, q)) =
+  case patternMatch p q of
+    NoMatch -> True
+    _       -> False
+
+testsOnAPOSEP :: [(String, Unifies)]
+testsOnAPOSEP =
+  [ ("Equivalent patterns always unify"              , equivalentPatternsUnify)
+  , ("Substitution is idempotent"                    , substitutionIsIdempotent)
+  , ("The pattern matching substitution is a unifier", substitutionUnifies)
+  ]
+
+testsOnAPOSDP :: [(String, DoesNotUnify)]
+testsOnAPOSDP =
+  [ ("Structurally different patterns never unify"  , differentPatternsDontUnify)
+  ]
+
+qcProperties :: TestTree
+qcProperties =
+  testGroup "Tested by Quick Check" $
+    map qc testsOnAPOSEP ++
+    map qc testsOnAPOSDP
+  where
+    qc (s, p) = uncurry QC.testProperty (s, withMaxSuccess Config.numberOfTests p)
+
 -- *| Generators:
 
 newtype AnyPattern
@@ -73,56 +123,6 @@ instance Arbitrary APairOfStructurallyDifferentPatterns where
   arbitrary = APOSDP <$> (arbitrary >>= forceDifferent . unAPOSEP)
   shrink p  = APOSDP . unAPOP <$> shrink (APOP $ unAPOSDP p)
 
--- *| Properties:
-
-type Unifies      = APairOfStructurallyEquvialentPatterns -> Bool
-type DoesNotUnify = APairOfStructurallyDifferentPatterns  -> Bool
-
-equivalentPatternsUnify :: Unifies
-equivalentPatternsUnify (APOSEP (p, q)) =
-  case patternMatch p q of
-    NoMatch -> False
-    _       -> True
-
-substitutionIsIdempotent :: Unifies
-substitutionIsIdempotent (APOSEP (p, q)) =
-  case patternMatch p q of
-    NoMatch   -> False
-    MatchBy f -> f p == f (f p)
-                && f q == f (f q)
-
-substitutionUnifies :: Unifies
-substitutionUnifies (APOSEP (p, q)) =
-  case patternMatch p q of
-    NoMatch   -> False
-    MatchBy f -> f p == f q
-
-differentPatternsDontUnify :: DoesNotUnify
-differentPatternsDontUnify (APOSDP (p, q)) =
-  case patternMatch p q of
-    NoMatch -> True
-    _       -> False
-
-testsOnAPOSEP :: [(String, Unifies)]
-testsOnAPOSEP =
-  [ ("Equivalent patterns always unify"              , equivalentPatternsUnify)
-  , ("Substitution is idempotent"                    , substitutionIsIdempotent)
-  , ("The pattern matching substitution is a unifier", substitutionUnifies)
-  ]
-
-testsOnAPOSDP :: [(String, DoesNotUnify)]
-testsOnAPOSDP =
-  [ ("Structurally different patterns never unify"  , differentPatternsDontUnify)
-  ]
-
-qcProperties :: TestTree
-qcProperties =
-  testGroup "Tested by Quick Check" $
-    map qc testsOnAPOSEP ++
-    map qc testsOnAPOSDP
-  where
-    qc (s, p) = uncurry QC.testProperty (s, withMaxSuccess Config.numberOfTests p)
-
 -- *| Exports:
 
 coreUnificationTests :: TestTree
@@ -134,7 +134,7 @@ coreUnificationTests =
 -- *| Nasty details:
 
 -- Produces a pair of unifiable patterns from a pair of (possibly)
--- ununifiable ones.
+-- ununifiable ones (turn into a Gen instead)?
 equivalentify :: AnyPairOfPatterns -> (Pattern (), Pattern ())
 equivalentify =
     regularify . fst . flip runState [] . forceEquivalent . unAPOP
