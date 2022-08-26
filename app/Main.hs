@@ -63,6 +63,6 @@ main =
   void $
   fromRight $
   parseString program_ $
-  fibProgram
+  unswapProgram
 
 -- main = print "Driver not yet implemented."

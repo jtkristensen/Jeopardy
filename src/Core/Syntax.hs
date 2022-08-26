@@ -36,9 +36,11 @@ data Program a
   | Main (Inversion a)
   deriving (Functor, Eq, Show)
 
+data Sort = Ordinary | Existential -- distinguish about kinds of variables
+  deriving (Eq, Show)
+
 data Pattern                  a
-  = Variable    X             a
-  | Existential X             a
+  = Variable    Sort X        a
   | Constructor C [Pattern a] a
   deriving (Functor, Eq, Show)
 
@@ -72,8 +74,7 @@ class MetaData m where
   meta :: m a -> a
 
 instance MetaData Pattern where
-  meta (Variable      _ a) = a
-  meta (Existential   _ a) = a
+  meta (Variable    _ _ a) = a
   meta (Constructor _ _ a) = a
 
 instance MetaData Term where

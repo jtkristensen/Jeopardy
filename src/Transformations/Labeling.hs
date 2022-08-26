@@ -40,8 +40,7 @@ instance IntegerAnnotatable Program where
     Main <$> annotateWithIntegers i
 
 instance IntegerAnnotatable Pattern where
-  annotateWithIntegers (Variable x a)    = Variable x    . (,) a <$> bump
-  annotateWithIntegers (Existential x a) = Existential x . (,) a <$> bump
+  annotateWithIntegers (Variable k x a)    = Variable k x. (,) a <$> bump
   annotateWithIntegers (Constructor c ps a) =
     do i   <- bump
        ps' <- mapM annotateWithIntegers ps

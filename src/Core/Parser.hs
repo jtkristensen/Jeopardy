@@ -84,9 +84,9 @@ pattern_ = choice $ map info
   [ brackets (Constructor <$> name <*> many pattern_)
   , do x <- name
        case x of
-         "_"     -> Existential <$> fresh
-         '_' : _ -> pure $ Existential x
-         _       -> pure $ Variable x
+         "_"     -> Variable Existential <$> fresh
+         '_' : _ -> pure $ Variable Existential x
+         _       -> pure $ Variable Ordinary x
   ]
 
 term_ :: Parser (Term Info)

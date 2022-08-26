@@ -27,8 +27,8 @@ positivePrograms =
     positive program_
       "id (x : nat) : nat = x . main id ." $
     Function "id"
-      (          Variable "x" (), "nat")
-      (Pattern $ Variable "x" (), "nat") $
+      (          Variable Ordinary "x" (), "nat")
+      (Pattern $ Variable Ordinary "x" (), "nat") $
     Main (Conventional "id" ())
   , testCase "Swap program" $
     positive program_
@@ -46,17 +46,17 @@ positivePrograms =
     Data "nat" [("suc",["nat"]),("zero",[])] $
     Data "pair" [("pair",["nat","nat"])] $
     Function "first"
-      (Constructor "pair" [Variable "a" (),Variable "b" ()] (),"pair")
-      (Pattern (Variable "a" ()),"nat") $
+      (Constructor "pair" [Variable Ordinary "a" (),Variable Ordinary "b" ()] (),"pair")
+      (Pattern (Variable Ordinary "a" ()),"nat") $
     Function "second"
-      (Constructor "pair" [Variable "a" (),Variable "b" ()] (),"pair")
-      (Pattern (Variable "b" ()),"nat") $
-    Function "swap" (Variable "p" (),"pair")
-      (Case (Application (Conventional "first" ()) (Variable "p" ()) (),"nat")
-         [(Variable "a" (),
-           Case (Application (Conventional "second" ()) (Variable "p" ()) (),"nat")
-             [ (Variable "b" ()
-              , Pattern (Constructor "pair" [Variable "b" (),Variable "a" ()] ()))
+      (Constructor "pair" [Variable Ordinary "a" (),Variable Ordinary "b" ()] (),"pair")
+      (Pattern (Variable Ordinary "b" ()),"nat") $
+    Function "swap" (Variable Ordinary "p" (),"pair")
+      (Case (Application (Conventional "first" ()) (Variable Ordinary "p" ()) (),"nat")
+         [(Variable Ordinary "a" (),
+           Case (Application (Conventional "second" ()) (Variable Ordinary "p" ()) (),"nat")
+             [ (Variable Ordinary "b" ()
+              , Pattern (Constructor "pair" [Variable Ordinary "b" (),Variable Ordinary "a" ()] ()))
              ] ())
          ] (),"pair") $
     Main (Conventional "swap" ())
@@ -68,27 +68,27 @@ positivePatterns =
     [ testCase "Variable Pattern" $
       positive pattern_
         "x" $
-      Variable "x" ()
+      Variable Ordinary "x" ()
     , testCase "Existential Pattern" $
       positive pattern_
         "_x" $
-      Existential "_x" ()
+      Variable Existential "_x" ()
     , let input = "_" in
         testCase "Underscore Pattern" $
         case parseString pattern_ input of
-          Right (Existential _ _) ->
+          Right (Variable Existential _ _) ->
             return ()
           _                       ->
-            positive pattern_ input $ Existential "<something>" ()
+            positive pattern_ input $ Variable Existential "<something>" ()
     , testCase "Underscore should be replaced by globally unique names" $
       case parseString pattern_ "_" of
-        Right (Existential x _) ->
+        Right (Variable Existential x _) ->
           let inner_construction = "[" ++ x ++ " _]"
           in case parseString pattern_ inner_construction of
-               Right (Constructor z [Existential y _] _) | x == z ->
+               Right (Constructor z [Variable Existential y _] _) | x == z ->
                  let final_construction = "[_ " ++ x ++ " " ++ y ++ "]"
                  in case parseString pattern_ final_construction of
-                      Right (Constructor "_" [Existential a _, Existential b _] _) ->
+                      Right (Constructor "_" [Variable Existential a _, Variable Existential b _] _) ->
                         assertBool (a ++ " should differ from " ++ b) (a /= b)
                       _ -> assertBool ("unable to parse " ++ final_construction) False
                _ -> assertBool ("unable to parse " ++ inner_construction) False
@@ -96,11 +96,11 @@ positivePatterns =
     , testCase "Variable Pattern followed by space." $
       positive pattern_
         "x " $
-      Variable "x" ()
+      Variable Ordinary "x" ()
     , testCase "Several symbols in varaible name." $
       positive pattern_
         "abc-def" $
-        Variable "abc-def" ()
+        Variable Ordinary "abc-def" ()
     , testCase "Simplest constructor." $
       positive pattern_
         "[nil]" $
@@ -108,14 +108,14 @@ positivePatterns =
     , testCase "Successor pattern." $
       positive pattern_
         "[suc n]" $
-        Constructor "suc" [Variable "n" ()] ()
+        Constructor "suc" [Variable Ordinary "n" ()] ()
     , testCase "Pair pattern" $
       positive pattern_
         "[pair [suc n] zero]" $
         Constructor "pair"
           [ Constructor "suc"
-             [Variable "n" ()] ()
-          , Variable "zero" ()
+             [Variable Ordinary  "n" ()] ()
+          , Variable Ordinary  "zero" ()
           ] ()
     ]
 

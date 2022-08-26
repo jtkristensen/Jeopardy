@@ -135,12 +135,12 @@ lookupTests =
   [ testCase "lookup an existing function definition" $
     functionExists
     ( "swap"
-    , (Variable "p" (), "pair")
-    , (Case (Application (Conventional "first" ()) (Variable "p" ()) (),"nat")
-         [( Variable "a" ()
-          , Case (Application (Conventional "second" ()) (Variable "p" ()) (), "nat")
-              [(Variable "b" ()
-               ,Pattern (Constructor "pair" [Variable "b" (),Variable "a" ()] ()))] ())] (), "pair"))
+    , (Variable Ordinary  "p" (), "pair")
+    , (Case (Application (Conventional "first" ()) (Variable Ordinary "p" ()) (),"nat")
+         [( Variable Ordinary "a" ()
+          , Case (Application (Conventional "second" ()) (Variable Ordinary "p" ()) (), "nat")
+              [(Variable Ordinary "b" ()
+               ,Pattern (Constructor "pair" [Variable Ordinary "b" (),Variable Ordinary "a" ()] ()))] ())] (), "pair"))
     swapProgram
   , testCase "lookup a non-existing function definition" $
     functionDoesNotExists "multiply" swapProgram

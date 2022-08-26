@@ -28,12 +28,15 @@ library
   exposed-modules:
       Analysis.ArgumentsAndCalls
       Analysis.Definitions
+      Analysis.DerivableExpressions
       Analysis.TypeChecking.Linear
       Analysis.TypeChecking.Ordinary
+      Analysis.Unification
       Core.Parser
       Core.Syntax
       Semantics.Invertible
       Semantics.Reversible
+      Transformations.Join
       Transformations.Labeling
       Transformations.ProgramEnvironment
   other-modules:
@@ -73,9 +76,11 @@ test-suite Jeopardy-test
   main-is: Harness.hs
   other-modules:
       ExamplePrograms
+      TestConfig
       TestsForArgumentsAndCallsAnalysis
       TestsForCoreParser
       TestsForDefinitionsAnalysis
+      TestsForUnification
       Paths_Jeopardy
   hs-source-dirs:
       test

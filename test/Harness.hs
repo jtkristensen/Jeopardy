@@ -3,6 +3,7 @@ import Test.Tasty
 import TestsForCoreParser
 import TestsForDefinitionsAnalysis
 import TestsForArgumentsAndCallsAnalysis
+import TestsForUnification
 
 main :: IO ()
 main = defaultMain tests
@@ -13,4 +14,5 @@ tests =
     [ coreParserTests
     , definitionsAnalysisTests
     , problematicArgumentOrCallAnalysisTests
+    , coreUnificationTests
     ]
