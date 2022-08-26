@@ -21,6 +21,11 @@ jobs:
           enable-stack:  true
           stack-version: '2.7.3'
 
+      - name: 'load configuration'
+        shell: bash
+        run: |
+          mv ./RemoteTestConfig.hs ./test/TestConfig.hs
+
       - name: 'Build with --pedantic'
         run: stack build --pedantic
 
