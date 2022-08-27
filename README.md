@@ -10,7 +10,7 @@ As the paper currently suggests that bi-directional first match can be extended 
 - [x] Abstract syntax etc.
 - [x] Basic program validity checks to be assumed further.
 - [ ] All fresh variables transformation (produce meta data about old names as biproduct).
-- [ ] Transformation that introduces labels everywhere.
+- [x] Transformation that introduces labels everywhere.
 - [ ] Graph where labels are vertices, but edges are annotated by labels
       (where a function gives control to another function.
 - [ ] Available expressions analysis (Nilson and Nilson but as a type-and-effect system).
