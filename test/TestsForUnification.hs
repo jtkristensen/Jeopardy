@@ -5,15 +5,18 @@ import Test.Tasty
 import Test.Tasty.QuickCheck as QC
 
 import Core.Syntax
-import Analysis.Unification
+import Analysis.Unification (patternMatch, PatternMatch(..))
 
 import qualified TestConfig as Config
-import Control.Monad.State ( State , runState , get, put )
+import Control.Monad.State
+
+import Data.Bifunctor
 
 -- *| Properties:
 
 type Unifies      = APairOfStructurallyEquvialentPatterns -> Bool
 type DoesNotUnify = APairOfStructurallyDifferentPatterns  -> Bool
+
 
 equivalentPatternsUnify :: Unifies
 equivalentPatternsUnify (APOSEP (p, q)) =
@@ -62,34 +65,73 @@ qcProperties =
 
 -- *| Generators:
 
+constructorName :: Gen C
+constructorName = oneof $ return . return <$> ['A'..'Z']
+
+variableName :: Gen X
+variableName = oneof $ return . return <$> ['a'..'z']
+
+variableSort :: Gen Sort
+variableSort = oneof $ [return] <*> [Existential, Ordinary]
+
+-- A sized variable pattern that uses a fresh variable name.
+variable :: StateT ([X], Int) Gen (Pattern ())
+variable =
+  do x       <- lift variableName
+     k       <- lift variableSort
+     (xs, n) <- get
+     if x `elem` xs
+       then variable
+       else do put (x : xs, n)
+               return $ Variable k x ()
+
+-- A sized constructor pattern that uses a fresh variable name.
+constructor :: StateT ([X], Int) Gen (Pattern ())
+constructor =
+  do c      <- lift constructorName
+     (_, m) <- get
+     n      <- lift (choose (0, m) :: Gen Int)
+     ps     <- mapM (const pattern_) [1..n]
+     return $ Constructor c ps ()
+
+-- Generates a sized pattern, which is free of certain names.  Appends the newly
+-- generated name.
+pattern_ :: StateT ([X], Int) Gen (Pattern ())
+pattern_ =
+  do b      <- lift arbitrary
+     (xs, n) <- get
+     put (xs, n - 1)
+     if b || n <= 0
+       then variable
+       else constructor
+
+-- Generates an equivalent pattern given an arbitrary pattern.
+-- generated name.
+equivalent :: AnyPattern -> StateT ([X], Int) Gen (Pattern ())
+equivalent (AP p) =
+  case p of
+    (Variable _  x   ()) ->
+      do b <- lift arbitrary
+         if b
+           then return p
+           else do modify (first (x:))
+                   pattern_
+    (Constructor c ps _) ->
+      do ps' <- mapM (equivalent . AP) ps
+         return $ Constructor c ps' ()
+
+names :: Pattern () -> [X]
+names (Variable     _ x _) = [x]
+names (Constructor _ ps _) = ps >>= names
+
+-- Given an arbitrary pattern, generates a fresh one.
 newtype AnyPattern
   = AP { unAP :: Pattern () }
 
-newtype VariableSort = VariableSort Sort
-
-instance Arbitrary VariableSort where
-  arbitrary =
-    VariableSort <$> oneof (map return [Ordinary, Existential])
-
 instance Arbitrary AnyPattern where
-  arbitrary = resize Config.sizeOfGeneratedPatterns $ AP <$> sized linearlySized
-    where
-      linearlySized = sizedPattern (\n -> n - 1)
-      sizedPattern _ 0 =
-        do vname             <- variableName
-           VariableSort sort <- arbitrary
-           return (Variable sort vname ())
-      sizedPattern f n =
-        do VariableSort sort <- arbitrary
-           oneof
-             [ do vname <- variableName
-                  return (Variable sort vname ())
-             , do cname <- constructorName
-                  ps    <- resize n $ listOf (sizedPattern f (f n))
-                  return (Constructor cname ps ())
-             ]
-      constructorName = oneof $ return . return <$> ['A'..'Z']
-      variableName    = oneof $ return . return <$> ['a'..'z']
+  arbitrary =
+    resize Config.sizeOfGeneratedPatterns $
+    AP . fst <$> sized (\n -> runStateT pattern_ ([], n))
   shrink (AP (Variable k _    _)) =
     do x <- return <$> ['a'..'z']
        return $ AP $ Variable k x ()
@@ -114,6 +156,17 @@ newtype APairOfStructurallyEquvialentPatterns
 instance Arbitrary APairOfStructurallyEquvialentPatterns where
   arbitrary = APOSEP . equivalentify <$> arbitrary
   shrink p  = APOSEP . equivalentify <$> shrink (APOP $ unAPOSEP p)
+
+newtype ThreeStructurallyEquvialentPatterns
+  = TSEP { unTSEP :: (Pattern (), Pattern (), Pattern()) }
+  deriving (Show)
+
+instance Arbitrary ThreeStructurallyEquvialentPatterns where
+  arbitrary = TSEP . f <$> ((,) <$> arbitrary <*> arbitrary)
+    where f (a1, a2) =
+            let (p, q)   = unAPOSEP a1
+                (_, r)   = equivalentify $ APOP (q, unAP a2)
+            in (p, q, r)
 
 newtype APairOfStructurallyDifferentPatterns
   = APOSDP { unAPOSDP :: (Pattern (), Pattern ()) }
@@ -216,7 +269,7 @@ forceDifferent (Constructor x ps _, Constructor y qs _) =
 -- Makes sure that the variable "x" occurs at least once.
 somethingEquals :: Name -> [Pattern ()] -> Gen [Pattern ()]
 somethingEquals x []
-  = do VariableSort sort <- arbitrary
+  = do sort <- variableSort
        return $ return $ Variable sort x ()
 somethingEquals x ((Variable sort y _) : rest)
   = oneof
