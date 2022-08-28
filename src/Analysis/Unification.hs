@@ -56,10 +56,10 @@ instance Monoid (Substitution f a) where
 
 -- Computes the most general unifier for patterns
 unify :: Pattern a -> Pattern a -> Substitution Pattern a
-unify (Variable  _ x _) (Variable  _ y _) | x == y               = mempty
-unify (Variable  _ x _) p                 | not (p `contains` x) = p `substitutes` x
-unify  p                (Variable  _ x _) | not (p `contains` x) = p `substitutes` x
-unify (Constructor c ps _) (Constructor t qs _)
+unify   (Variable  _ x _)   (Variable  _ y _)  | x == y               = mempty
+unify   (Variable  _ x _) p                    | not (p `contains` x) = p `substitutes` x
+unify p                      (Variable  _ x _) | not (p `contains` x) = p `substitutes` x
+unify   (Constructor c ps _) (Constructor t qs _)
   | c == t && length ps == length qs
   = foldr ((<>) . uncurry unify) mempty (zip ps qs)
 unify _ _

@@ -17,7 +17,6 @@ import Data.Bifunctor
 type Unifies      = APairOfStructurallyEquvialentPatterns -> Bool
 type DoesNotUnify = APairOfStructurallyDifferentPatterns  -> Bool
 
-
 equivalentPatternsUnify :: Unifies
 equivalentPatternsUnify (APOSEP (p, q)) =
   case patternMatch p q of
@@ -74,64 +73,83 @@ variableName = oneof $ return . return <$> ['a'..'z']
 variableSort :: Gen Sort
 variableSort = oneof $ [return] <*> [Existential, Ordinary]
 
--- A sized variable pattern that uses a fresh variable name.
-variable :: StateT ([X], Int) Gen (Pattern ())
-variable =
-  do x       <- lift variableName
-     k       <- lift variableSort
-     (xs, n) <- get
-     if x `elem` xs
-       then variable
-       else do put (x : xs, n)
-               return $ Variable k x ()
+-- TODO:
+-- This should be StateT [X] (ReaderT Int) ...
+-- And also, it should generalize to make patterns that work further
+-- than commutativity (like associative unificaiton or something).
 
--- A sized constructor pattern that uses a fresh variable name.
-constructor :: StateT ([X], Int) Gen (Pattern ())
-constructor =
-  do c      <- lift constructorName
-     (_, m) <- get
-     n      <- lift (choose (0, m) :: Gen Int)
-     ps     <- mapM (const pattern_) [1..n]
-     return $ Constructor c ps ()
+-- -- A sized variable pattern that uses a fresh variable name.
+-- variable :: StateT ([X], Int) Gen (Pattern ())
+-- variable =
+--   do x       <- lift variableName
+--      k       <- lift variableSort
+--      (xs, n) <- get
+--      if x `elem` xs
+--        then variable
+--        else do put (x : xs, n)
+--                return $ Variable k x ()
 
--- Generates a sized pattern, which is free of certain names.  Appends the newly
--- generated name.
-pattern_ :: StateT ([X], Int) Gen (Pattern ())
-pattern_ =
-  do b      <- lift arbitrary
-     (xs, n) <- get
-     put (xs, n - 1)
-     if b || n <= 0
-       then variable
-       else constructor
+-- -- A sized constructor pattern that uses a fresh variable name.
+-- constructor :: StateT ([X], Int) Gen (Pattern ())
+-- constructor =
+--   do c      <- lift constructorName
+--      (_, m) <- get
+--      n      <- lift (choose (0, m) :: Gen Int)
+--      ps     <- mapM (const pattern_) [1..n]
+--      return $ Constructor c ps ()
 
--- Generates an equivalent pattern given an arbitrary pattern.
--- generated name.
-equivalent :: AnyPattern -> StateT ([X], Int) Gen (Pattern ())
-equivalent (AP p) =
-  case p of
-    (Variable _  x   ()) ->
-      do b <- lift arbitrary
-         if b
-           then return p
-           else do modify (first (x:))
-                   pattern_
-    (Constructor c ps _) ->
-      do ps' <- mapM (equivalent . AP) ps
-         return $ Constructor c ps' ()
+-- -- Generates a sized pattern, which is free of certain names.  Appends the newly
+-- -- generated name.
+-- pattern_ :: StateT ([X], Int) Gen (Pattern ())
+-- pattern_ =
+--   do b      <- lift arbitrary
+--      (xs, n) <- get
+--      put (xs, n - 1)
+--      if b || n <= 0
+--        then variable
+--        else constructor
 
-names :: Pattern () -> [X]
-names (Variable     _ x _) = [x]
-names (Constructor _ ps _) = ps >>= names
+-- -- Generates an equivalent pattern given an arbitrary pattern.
+-- -- generated name.
+-- equivalent :: AnyPattern -> StateT ([X], Int) Gen (Pattern ())
+-- equivalent (AP p) =
+--   case p of
+--     (Variable _  x   ()) ->
+--       do b <- lift arbitrary
+--          if b
+--            then return p
+--            else do modify (first (x:))
+--                    pattern_
+--     (Constructor c ps _) ->
+--       do ps' <- mapM (equivalent . AP) ps
+--          return $ Constructor c ps' ()
+
+-- names :: Pattern () -> [X]
+-- names (Variable     _ x _) = [x]
+-- names (Constructor _ ps _) = ps >>= names
 
 -- Given an arbitrary pattern, generates a fresh one.
 newtype AnyPattern
   = AP { unAP :: Pattern () }
 
 instance Arbitrary AnyPattern where
-  arbitrary =
-    resize Config.sizeOfGeneratedPatterns $
-    AP . fst <$> sized (\n -> runStateT pattern_ ([], n))
+  -- arbitrary =
+  --   resize Config.sizeOfGeneratedPatterns $
+  --   AP . fst <$> sized (\n -> runStateT pattern_ ([], n))
+  arbitrary = resize Config.sizeOfGeneratedPatterns $ AP <$> sized linearlySized
+    where
+      linearlySized = sizedPattern (\n -> n - 1)
+      sizedPattern f 0 =
+        do vname <- variableName
+           return (Variable Ordinary vname ())
+      sizedPattern f n =
+        oneof
+          [ do vname <- variableName
+               return (Variable Ordinary vname ())
+          , do cname <- constructorName
+               ps    <- resize n $ listOf (sizedPattern f (f n))
+               return (Constructor cname ps ())
+          ]
   shrink (AP (Variable k _    _)) =
     do x <- return <$> ['a'..'z']
        return $ AP $ Variable k x ()
