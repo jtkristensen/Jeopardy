@@ -9,32 +9,32 @@ As the paper currently suggests that bi-directional first match can be extended 
 ## TODO:
 - [x] Abstract syntax etc.
 - [x] Basic program validity checks to be assumed further.
-- [ ] All fresh variables transformation (produce meta data about old names as biproduct).
 - [x] Transformation that introduces labels everywhere.
+- [x] Per module property based testing.
+- [x] CI/CD.
+- [ ] Consistency type checking.
+- [ ] Plausible pattern expansions analysis.
+- [ ] Reversible semantics from paper.
 - [ ] Graph where labels are vertices, but edges are annotated by labels
       (where a function gives control to another function.
 - [ ] Available expressions analysis (Nilson and Nilson but as a type-and-effect system).
-- [ ] At call sites, it is determined what things inside the function call
-      can be decided by the lables on the arrow.
-- [ ] Decide case-ortogonality with help of subterms.
-- [ ] Use available expressions in online partial evaluation (instead of in match-policy)?
+- [ ] Write a better todo list.
+- [ ] Reconstruction types (is the name we gave them at a meeting).
+- [ ] Does the analysis need a program elaborator.
+
+## To make decidable by analysis
+- [ ] Decide to do equality check or continue evaluating.
+- [ ] Ortogonality by analysis.
+- [ ] Ortogonality by partial evaluation.
 - [ ] Bidirectional online partial evaluator "(RD |- term -| Gamma) ~> term".
-- [ ] Rewrite inverse programs in forward style by offline partial evaluation?
-- [ ] Insert constraints about equality checks as guards for pattern
-      matching (e.g fib^-1 (n, fib(n))).
-- [ ] Type checker for linear typing.
-- [ ] Interpreter reversible semantics.
+- [ ] Derivable Expressions.
+- [ ] Eventual "non-existentialism".
+- [ ] Tail recursive functions.
+- [ ] Termination checking.
+- [ ] Generalize Torbens notion of semi-inversion.
 - [ ] Control flow analysis (CFA1 from Nilson and Nilson).
-- [x] Per module property based testing.
-- [x] CI/CD.
 - [ ] Desugaring program transformation.
 - [ ] Template polymorphism.
-- [ ] Consistency type checking.
-- [ ] Limited Invertible Semantics based on Reaching Definitions
-- [ ] Test that the invertible semantics is a conservative extension of the reversible one.
-- [ ] Reconstruction types (is the name we gave them at a meeting).
 - [ ] Extend with lazy evaluation and existential variables that.
-- [ ] Analysis that check that existential variables will be resolvable before they are used.
-- [ ] Program elaborator (transformation that expands terms until existential parts are distinguishable from non-existential ones.
 - [ ] Size change termination (straigt up, to see that I understand it properly).
 - [ ] Analysis similar to size change that builds multiple graphs.
