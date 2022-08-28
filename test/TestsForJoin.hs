@@ -5,7 +5,7 @@ import Test.Tasty
 import Test.Tasty.QuickCheck as QC
 
 import Core.Syntax
-import TestsForUnification (AnyPattern(..))
+import Generators (AnyPattern(..))
 import Transformations.Labeling
 import Transformations.Join
 
