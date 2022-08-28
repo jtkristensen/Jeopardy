@@ -60,7 +60,7 @@ qcProperties =
     map qc testsOnAPOSEP ++
     map qc testsOnAPOSDP
   where
-    qc (s, p) = uncurry QC.testProperty (s, withMaxSuccess Config.numberOfTests p)
+    qc (s, p) = uncurry QC.testProperty (s, withMaxSuccess Config.numberOfUnificationTests p)
 
 -- *| Generators:
 
@@ -131,6 +131,7 @@ variableSort = oneof $ [return] <*> [Existential, Ordinary]
 -- Given an arbitrary pattern, generates a fresh one.
 newtype AnyPattern
   = AP { unAP :: Pattern () }
+  deriving (Eq, Show)
 
 instance Arbitrary AnyPattern where
   -- arbitrary =

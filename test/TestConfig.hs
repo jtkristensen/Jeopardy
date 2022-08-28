@@ -8,5 +8,9 @@ sizeOfGeneratedPatterns :: Int
 sizeOfGeneratedPatterns = 10
 
 -- This decides how many testcases QuickCheck should run.
-numberOfTests :: Int
-numberOfTests = 100
+numberOfUnificationTests :: Int
+numberOfUnificationTests = 100
+
+-- ..
+numberOfJoinTests :: Int
+numberOfJoinTests = 20

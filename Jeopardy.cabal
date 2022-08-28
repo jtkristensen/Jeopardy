@@ -80,6 +80,7 @@ test-suite Jeopardy-test
       TestsForArgumentsAndCallsAnalysis
       TestsForCoreParser
       TestsForDefinitionsAnalysis
+      TestsForJoin
       TestsForUnification
       Paths_Jeopardy
   hs-source-dirs:

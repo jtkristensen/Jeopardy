@@ -4,6 +4,7 @@ import TestsForCoreParser
 import TestsForDefinitionsAnalysis
 import TestsForArgumentsAndCallsAnalysis
 import TestsForUnification
+import TestsForJoin
 
 main :: IO ()
 main = defaultMain tests
@@ -15,4 +16,5 @@ tests =
     , definitionsAnalysisTests
     , problematicArgumentOrCallAnalysisTests
     , coreUnificationTests
+    , coreJoinableTests
     ]
