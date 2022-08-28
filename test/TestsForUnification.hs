@@ -10,8 +10,6 @@ import Analysis.Unification (patternMatch, PatternMatch(..))
 import qualified TestConfig as Config
 import Control.Monad.State
 
-import Data.Bifunctor
-
 -- *| Properties:
 
 type Unifies      = APairOfStructurallyEquvialentPatterns -> Bool
@@ -140,7 +138,7 @@ instance Arbitrary AnyPattern where
   arbitrary = resize Config.sizeOfGeneratedPatterns $ AP <$> sized linearlySized
     where
       linearlySized = sizedPattern (\n -> n - 1)
-      sizedPattern f 0 =
+      sizedPattern _ 0 =
         do vname <- variableName
            return (Variable Ordinary vname ())
       sizedPattern f n =

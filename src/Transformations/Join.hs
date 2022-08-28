@@ -14,30 +14,31 @@ Portability : POSIX
 module Transformations.Join where
 
 import Core.Syntax
+import Control.Monad (zipWithM)
 
 class Joinable m where
   join :: m a -> m b -> Maybe (m (a, b))
 
 instance Joinable Program where
   join (Function f (p,  tp ) (t,  tt ) program )
-       (Function g (p', tp') (t', tt') program') | f == g =
+       (Function g (p', tp') (t', tt') program') | f == g && tp == tp' && tt == tt' =
     do joined_p       <- join p p'
        joined_t       <- join t t'
        joined_program <- join program program'
        return $ Function f (joined_p, tp) (joined_t, tt) joined_program
   join (Data d dt  program)
-       (Data t dt' program') | d == t =
+       (Data t dt' program') | d == t && dt == dt' =
     do joined_program <- join program program'
        return $ Data d dt joined_program
-  join (Main f) (Main g) = join f g >>= return . Main
+  join (Main f) (Main g) = Main <$> join f g
   join _ _ = Nothing
 
 instance Joinable Pattern where
-  join (Variable k x a)     (Variable _ _ b)              = Just (Variable k x (a, b))
-  join (Constructor c _  _) (Constructor k _  _) | c /= k = Nothing
-  join (Constructor c ps a) (Constructor _ qs b)          =
-    do ps' <- mapM (uncurry join) (zip ps qs)
+  join (Variable k x a)     (Variable _ _ b)               = Just (Variable k x (a, b))
+  join (Constructor c ps a) (Constructor k qs b) | c == k  =
+    do ps' <- zipWithM join ps qs
        return $ Constructor c ps' (a, b)
+  join _ _ = Nothing
 
 instance Joinable Inversion where
   join (Conventional f a) (Conventional _ b) = return $ Conventional f (a, b)
