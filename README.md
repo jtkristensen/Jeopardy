@@ -12,10 +12,10 @@ As the paper currently suggests that bi-directional first match can be extended 
 - [x] Transformation that introduces labels everywhere.
 - [x] Per module property based testing.
 - [x] CI/CD.
+- [ ] Reversible semantics from paper.
 - [ ] Available expressions analysis (Nilson and Nilson but as a type-and-effect system).
 - [ ] Consistency type checking.
 - [ ] Plausible pattern expansions analysis.
-- [ ] Reversible semantics from paper.
 - [ ] Graph where labels are vertices, but edges are annotated by labels
       (where a function gives control to another function.
 - [ ] Write a better todo list.
