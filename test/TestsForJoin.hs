@@ -33,18 +33,23 @@ instance ( Function a
        g         <- arbitrary
        return $ Precondition (g, f . snd <$> p 0)
 
-patterns :: Law
-patterns (Precondition (Fun _ f, p)) =
+patternCombination :: Law
+patternCombination (Precondition (Fun _ f, p)) =
   ((\a -> (a, f a)) <$> p) == fromJust (join p (f <$> p))
 
--- TODO : Generalize to be a law about programs (requires us to write a very
+patternCoJoinability :: Law
+patternCoJoinability (Precondition (Fun _ f, p)) =
+  cojoin ((\a -> (a, f a)) <$> p) == (p, f <$> p)
+
+-- TODO : Generalize to be a laws about programs (requires us to write a very
 -- involved generator).
 
 -- *| Exports:
 
 laws :: [(String, Law)]
 laws =
-  [ ("Combination law for patterns", patterns)
+  [ ("Combination law for patterns",   patternCombination)
+  , ("Uncombination law for patterns", patternCoJoinability)
   ]
 
 qcProperties :: TestTree

@@ -19,4 +19,10 @@ module Analysis.TypeChecking.Linear where
 
 -- import Core.Syntax
 -- import Analysis.Definitions
+-- import Analysis.ArgumentsAndCalls
+-- import Transformations.ProgramEnvironment
 
+-- type Error a = Either (ConflictingCall a) ConflictingDefinitions
+
+-- check :: Program a -> Either (Error a) (Program (a, T))
+-- check = undefined
