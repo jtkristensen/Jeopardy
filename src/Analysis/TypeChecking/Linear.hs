@@ -16,7 +16,7 @@ Copenhagen 2022.
 -}
 
 module Analysis.TypeChecking.Linear
-  (check, LinearTypeError, ConflictingCall, ConflictingDefinitions )
+--  (check, LinearTypeError, ConflictingCall, ConflictingDefinitions )
 where
 
 import Core.Syntax
@@ -28,7 +28,8 @@ import Transformations.Join ( join     )
 import Data.Maybe           ( fromJust )
 import Data.List            ( nub      )
 
-import Control.Monad.RWS (RWS, runRWS)
+import Control.Monad.RWS (RWS)
+import qualified Control.Monad.RWS as RWS
 
 data Error a
   = ErrorneousCall       (ConflictingCall a)
@@ -41,7 +42,7 @@ data LinearTypeError               a
   | UndefinedRescource       F X   a
   | ReusedRescource          F X  [a]
   | ExistentialsAreNotLinear F X   a
-  | IrregularPattern         F     a
+  | IrregularPattern         F    [a]
   deriving Eq
 
 -- Applies linear typing rules as described in the paper (Jeopardy : an
@@ -51,7 +52,7 @@ check :: Eq a => Program a -> Either [Error a] (Program (a, T))
 check program =
   case ds ++ ac of
     [] ->
-      case runRWS (run program) (programEnvironment program, "$>") mempty of
+      case RWS.runRWS (run program) (programEnvironment program, "$>") mempty of
         (typedProgram, _, []) ->
           Right $ fromJust $ join program typedProgram
         (_, _, typeErrors)         ->
@@ -63,12 +64,20 @@ check program =
    run = coanalyse . analyse
    combine (ReusedRescource f x as : rest) =
      nub $ ReusedRescource f x (as <> (rest >>= reused f x)) : combine rest
+   combine (IrregularPattern f as : rest) =
+     nub $ IrregularPattern f (as <> (rest >>= irregular f)) : combine rest
    combine (err                    : rest) = err : combine rest
    combine [                             ] = []
    reused f x (ReusedRescource g y as) | f == g && x == y = as
    reused _ _ _                                           = []
+   irregular f (IrregularPattern g as) | f == g           = as
+   irregular _ _                                          = []
 
-data State a =
+-- BEGIN TODO? (template haskell for this ?)
+
+type Reader a = (Environment (Analysis a) a, F)
+type Writer a = [LinearTypeError a]
+data State  a =
   State
     { used    :: [(X, T, a)]
     , defined :: [(X, T, a)]
@@ -83,7 +92,10 @@ instance Monoid (State a) where
 
 newtype Analysis a b
   = Analysis
-  { coanalyse :: RWS (Environment (Analysis a) a, F) [LinearTypeError a] (State a) b }
+      { coanalyse :: RWS (Reader a) (Writer a) (State a) b }
+
+class LinearlyTypeable thing where
+  analyse :: thing a -> Analysis a (thing T)
 
 instance Monad (Analysis a) where
   return   = Analysis . return
@@ -96,11 +108,28 @@ instance Applicative (Analysis a) where
 instance Functor (Analysis a) where
   fmap f = Analysis . fmap f . coanalyse
 
-class LinearlyTypeable thing where
-  analyse :: thing a -> Analysis a (thing T)
+local :: (Reader a -> Reader a) -> (Analysis a b -> Analysis a b)
+local f = Analysis . RWS.local f . coanalyse
+
+ask :: Analysis a (Reader a)
+ask = Analysis RWS.ask
+
+tell :: Writer a -> Analysis a ()
+tell = Analysis . RWS.tell
+
+put :: State a -> Analysis a ()
+put = Analysis . RWS.put
+
+get :: Analysis a (State a)
+get = Analysis RWS.get
+
+-- END TODO?
 
 instance LinearlyTypeable Program where
   analyse = undefined
+  -- analyse (Function f (p, pt) (t, tt) program) = undefined
+  -- analyse (Data t ct program) = Data t ct <$> analyse program
+  -- analyse (Main inversion)    = Main      <$> analyse inversion
 
 instance LinearlyTypeable Pattern where
   analyse = undefined
