@@ -30,7 +30,7 @@ import Transformations.Labeling
 
 type L = Integer -- Labels.
 
-type Vertex = L
+type Vertex = (F, [[L]])
 type Edge   = (Vertex, [L], Vertex)
 
 data Graph =
@@ -39,16 +39,16 @@ data Graph =
 
 type Flow = ERWS Vertex () () ()
 
-flow :: Program Vertex -> Flow Graph
-flow p =
-  do inversion <- main <$> environment
-     return $ Graph [basename inversion] []
+-- flow :: Program Vertex -> Flow Graph
+-- flow p =
+--   do inversion <- main <$> environment
+--      return $ Graph [basename inversion] []
 
-hello :: Program a -> Graph
-hello p = a
-  where
-    p'        = snd <$> fresh id p
-    (a, _, _) = runERWS (flow p') p' () ()
+-- hello :: Program a -> Graph
+-- hello p = a
+--   where
+--     p'        = snd <$> fresh id p
+--     (a, _, _) = runERWS (flow p') p' () ()
 
 -- first  ([pair a _] : pair) : nat = a.
 
