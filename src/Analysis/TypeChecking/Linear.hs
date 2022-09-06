@@ -69,8 +69,6 @@ check program =
    irregular f (IrregularPattern g as) | f == g           = as
    irregular _ _                                          = []
 
-
-
 data State a =
   State { used    :: [(X, T, a)]
         , defined :: [(X, T, a)] }

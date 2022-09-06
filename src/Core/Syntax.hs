@@ -81,3 +81,4 @@ instance MetaData Term where
   meta (Pattern         p) = meta p
   meta (Application _ _ a) = a
   meta (Case        _ _ a) = a
+

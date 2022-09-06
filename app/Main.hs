@@ -7,6 +7,7 @@ module Main where
 import Core.Parser   (Source, parseString, program_)
 import Control.Monad (void)
 import Transformations.Labeling
+import Analysis.AvailableExpressions
 
 fromRight :: Either a b -> b
 fromRight (Right b) = b
@@ -50,9 +51,9 @@ unswapProgram =
   "second ([pair _ b] : pair) : nat = b."            ++
   "unswap ([pair b a] : pair) : pair ="              ++
   "  case (invert second) b : pair of"               ++
-  "  ; p ->"                                         ++
+  "  ; _p ->"                                        ++
   "    case (invert first) a : pair of"              ++
-  "    ; p -> p."                                    ++
+  "    ; _p -> _p."                                  ++
   "main unswap."
 
 main :: IO ()
