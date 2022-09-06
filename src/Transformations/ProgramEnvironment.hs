@@ -59,7 +59,7 @@ instance Monoid w => Functor (ERWS e r w s) where
   fmap f = ERWS . fmap f . coERWS
 
 runERWS :: Monoid w => ERWS e r w s a -> Program e -> r -> s -> (a, s, w)
-runERWS erws p r s = RWS.runRWS (coERWS erws) (programEnvironment p, r) s
+runERWS erws p r = RWS.runRWS (coERWS erws) (programEnvironment p, r)
 
 environment :: Monoid w => ERWS e r w s (Environment (ERWS e r w s) e)
 environment = ERWS $ fst <$> RWS.ask
@@ -77,7 +77,7 @@ put :: Monoid w => s -> ERWS e r w s ()
 put = ERWS . RWS.put
 
 get :: Monoid w => ERWS e r w s s
-get = ERWS $ RWS.get
+get = ERWS RWS.get
 
 modify :: Monoid w => (s -> s) -> ERWS e r w s ()
 modify f = ERWS $ RWS.modify f
