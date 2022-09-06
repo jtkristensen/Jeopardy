@@ -28,9 +28,6 @@ import Transformations.Join ( join     )
 import Data.Maybe           ( fromJust )
 import Data.List            ( nub      )
 
-import Control.Monad.RWS (RWS)
-import qualified Control.Monad.RWS as RWS
-
 data Error a
   = ErrorneousCall       (ConflictingCall a)
   | ErrorneousDefinition ConflictingDefinitions
@@ -52,7 +49,7 @@ check :: Eq a => Program a -> Either [Error a] (Program (a, T))
 check program =
   case ds ++ ac of
     [] ->
-      case RWS.runRWS (run program) (programEnvironment program, "$>") mempty of
+      case runERWS (analyse program) program "$>" mempty of
         (typedProgram, _, []) ->
           Right $ fromJust $ join program typedProgram
         (_, _, typeErrors)         ->
@@ -61,7 +58,6 @@ check program =
   where
    ds  = map ErrorneousDefinition $ duplicateDefinitionsAnalysis      program
    ac  = map ErrorneousCall       $ problematicArgumentOrCallAnalysis program
-   run = coanalyse . analyse
    combine (ReusedRescource f x as : rest) =
      nub $ ReusedRescource f x (as <> (rest >>= reused f x)) : combine rest
    combine (IrregularPattern f as : rest) =
@@ -73,15 +69,11 @@ check program =
    irregular f (IrregularPattern g as) | f == g           = as
    irregular _ _                                          = []
 
--- BEGIN TODO? (template haskell for this ?)
 
-type Reader a = (Environment (Analysis a) a, F)
-type Writer a = [LinearTypeError a]
-data State  a =
-  State
-    { used    :: [(X, T, a)]
-    , defined :: [(X, T, a)]
-    }
+
+data State a =
+  State { used    :: [(X, T, a)]
+        , defined :: [(X, T, a)] }
 
 instance Semigroup (State a) where
   s1 <> s2 = State (used s1 <> used s2) (defined s1 <> defined s2)
@@ -90,40 +82,14 @@ instance Monoid (State a) where
   mempty  = State [] []
   mappend = (<>)
 
-newtype Analysis a b
-  = Analysis
-      { coanalyse :: RWS (Reader a) (Writer a) (State a) b }
+putUsed, putDefined :: (X, T, a) -> Analysis a ()
+putUsed    x = modify $ \s -> s { used    = x : used    s }
+putDefined x = modify $ \s -> s { defined = x : defined s }
+
+type Analysis a b = ERWS a F [LinearTypeError a] (State a) b
 
 class LinearlyTypeable thing where
   analyse :: thing a -> Analysis a (thing T)
-
-instance Monad (Analysis a) where
-  return   = Analysis . return
-  ma >>= f = Analysis $ coanalyse ma >>= coanalyse . f
-
-instance Applicative (Analysis a) where
-  pure        = return
-  an0 <*> an1 = an0 >>= \f -> f <$> an1
-
-instance Functor (Analysis a) where
-  fmap f = Analysis . fmap f . coanalyse
-
-local :: (Reader a -> Reader a) -> (Analysis a b -> Analysis a b)
-local f = Analysis . RWS.local f . coanalyse
-
-ask :: Analysis a (Reader a)
-ask = Analysis RWS.ask
-
-tell :: Writer a -> Analysis a ()
-tell = Analysis . RWS.tell
-
-put :: State a -> Analysis a ()
-put = Analysis . RWS.put
-
-get :: Analysis a (State a)
-get = Analysis RWS.get
-
--- END TODO?
 
 instance LinearlyTypeable Program where
   analyse = undefined

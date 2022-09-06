@@ -19,8 +19,12 @@ constructor applied to the wrong number of arguments and so on..
 module Transformations.ProgramEnvironment where
 
 import Core.Syntax
+
 import Analysis.Definitions
 import Data.Maybe
+
+import           Control.Arrow
+import qualified Control.Monad.RWS as RWS
 
 data Environment m a
   = Environment
@@ -38,3 +42,42 @@ programEnvironment p
       , datatype     = return . \c -> fromJust $ lookupConstructorType c p
       , constructors = return . \t -> fromJust $ lookupDatatype t p
       }
+
+-- Convinient Monad: Environment Reader Writer State.
+newtype ERWS e r w s a =
+  ERWS { coERWS :: RWS.RWS (Environment (ERWS e r w s) e, r) w s a }
+
+instance Monoid w => Monad (ERWS e r w s) where
+  return  = ERWS . RWS.return
+  m >>= f = ERWS $ coERWS m >>= coERWS . f
+
+instance Monoid w => Applicative (ERWS e r w s) where
+  pure = return
+  e0 <*> e1 = e0 >>= \f -> f <$> e1
+
+instance Monoid w => Functor (ERWS e r w s) where
+  fmap f = ERWS . fmap f . coERWS
+
+runERWS :: Monoid w => ERWS e r w s a -> Program e -> r -> s -> (a, s, w)
+runERWS erws p r s = RWS.runRWS (coERWS erws) (programEnvironment p, r) s
+
+environment :: Monoid w => ERWS e r w s (Environment (ERWS e r w s) e)
+environment = ERWS $ fst <$> RWS.ask
+
+local :: Monoid w => (r -> r) -> (ERWS e r w s b -> ERWS e r w s b)
+local f = ERWS . RWS.local (second f) . coERWS
+
+ask :: Monoid w => ERWS e r w s r
+ask = ERWS $ snd <$> RWS.ask
+
+tell :: Monoid w => w -> ERWS e r w s ()
+tell = ERWS . RWS.tell
+
+put :: Monoid w => s -> ERWS e r w s ()
+put = ERWS . RWS.put
+
+get :: Monoid w => ERWS e r w s s
+get = ERWS $ RWS.get
+
+modify :: Monoid w => (s -> s) -> ERWS e r w s ()
+modify f = ERWS $ RWS.modify f
