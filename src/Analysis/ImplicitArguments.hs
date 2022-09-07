@@ -1,7 +1,7 @@
 {-|
 
-Module      : Analysis.AvailableExpressions.
-Description : At every program point, what expressions are available in both directions.
+Module      : Analysis.ImplicitArguments.
+Description : At every call site, what interprocedural expressions are available as implicit arguments.
 Author      : Joachim Tilsted Kristensen.
 Licence     : GNU GENERAL PUBLIC LICENSE
 Maintainer  : joachkr@ifi.uio.no
@@ -10,7 +10,7 @@ Portability : POSIX
 
 -}
 
-module Analysis.AvailableExpressions where
+module Analysis.ImplicitArguments where
 
 -- This module assumes that the input program passes all of
 -- 1) 'definitions analysis'
@@ -27,7 +27,6 @@ import Core.Syntax
 import Transformations.ProgramEnvironment
 import Transformations.Labeling
 
-
 type L = Integer -- Labels.
 
 type Vertex = (F, [[L]])
@@ -36,19 +35,19 @@ type Edge   = (Vertex, [L], Vertex)
 data Graph =
   Graph { vertices :: [Vertex]
         , edges    :: [Edge] }
+  deriving Show
 
-type Flow = ERWS Vertex () () ()
+type Flow a = ERWS a () () ()
 
--- flow :: Program Vertex -> Flow Graph
--- flow p =
---   do inversion <- main <$> environment
---      return $ Graph [basename inversion] []
+analysis :: Flow a (Inversion a)
+analysis =
+  do inversion <- environment >>= main
+     return inversion
 
--- hello :: Program a -> Graph
--- hello p = a
---   where
---     p'        = snd <$> fresh id p
---     (a, _, _) = runERWS (flow p') p' () ()
+hello program = a
+  where
+    program'   = snd <$> fresh id program
+    (a, _, _) = runERWS analysis program' () ()
 
 -- first  ([pair a _] : pair) : nat = a.
 

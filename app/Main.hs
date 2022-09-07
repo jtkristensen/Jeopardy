@@ -7,7 +7,7 @@ module Main where
 import Core.Parser   (Source, parseString, program_)
 import Control.Monad (void)
 import Transformations.Labeling
-import Analysis.AvailableExpressions
+import Analysis.ImplicitArguments
 
 fromRight :: Either a b -> b
 fromRight (Right b) = b
@@ -41,7 +41,7 @@ fibProgram =
   "  ; p ->"                                         ++
   "    case first p : nat of"                        ++
   "    ;  fib-n -> [pair n fib-n]."                  ++
-  "main fib."
+  "main (invert fib)."
 
 unswapProgram :: Source
 unswapProgram =
@@ -59,11 +59,12 @@ unswapProgram =
 main :: IO ()
 main =
   print $
-  fmap snd $
-  fresh id $
+  -- fmap snd $
+  -- fresh id $
   void $
+  -- hello $
   fromRight $
   parseString program_ $
-  unswapProgram
+  fibProgram
 
 -- main = print "Driver not yet implemented."

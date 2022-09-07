@@ -27,9 +27,8 @@ source-repository head
 library
   exposed-modules:
       Analysis.ArgumentsAndCalls
-      Analysis.AvailableExpressions
       Analysis.Definitions
-      Analysis.DerivableExpressions
+      Analysis.ImplicitArguments
       Analysis.TypeChecking.Linear
       Analysis.TypeChecking.Ordinary
       Analysis.Unification

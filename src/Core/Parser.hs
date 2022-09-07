@@ -114,7 +114,7 @@ term_ = choice $
 inversion_ :: Parser (Inversion Info)
 inversion_ = choice
   [ info $ Conventional <$> name
-  , parens $ keyword "invert" >> inversion_
+  , info $ parens $ keyword "invert" >> Invert <$> inversion_
   ]
 
 -- * Utility:
