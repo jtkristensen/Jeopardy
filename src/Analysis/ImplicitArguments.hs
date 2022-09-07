@@ -24,10 +24,10 @@ module Analysis.ImplicitArguments where
 -- that are not defined.
 
 import Core.Syntax
-import Data.List                 (sort)
-import Control.Monad             (void)
-import Transformations.Labeling  (fresh)
 import Transformations.ProgramEnvironment
+
+import Data.List     (sort)
+import Control.Monad (void, join)
 
 type Label   = Integer
 type Visited = Label
@@ -104,16 +104,20 @@ nameAndDirection (Conventional f _) = (f, Down)
 nameAndDirection (Invert       i _) = (f, switch d)
   where (f, d) = nameAndDirection i
 
+callable :: Inversion Label -> Flow Call
+callable i = Call f d [] <$> ask
+  where (f, d) = nameAndDirection i
+
 -- returns the call corresponding to an inversion.
 call :: Inversion Label -> Pattern Label -> Flow Call
 call i p =
-  do define           <- function <$> environment
+  do Call f d _ a     <- callable i
+     define           <- function <$> environment
      ((q, _), (t, _)) <- define f
      case d of
        Up -> Pattern p `equals` t
        _  -> p `equals` q
-     Call f d (labels p) <$> ask
-  where (f, d) = nameAndDirection i
+     return $ Call f d (labels p) a
 
 class CanBeLabeled m where
   labels :: m Label -> [Label]
@@ -151,7 +155,7 @@ analyseCall c =
           ((p,_), (t,_)) <- environment >>= (\f -> f (name c)) . function
           case direction c of
             Down -> update (labels p) $ analyseTerm t
-            Up   -> void $ unalyseTerm t
+            Up   -> void              $ unalyseTerm t
 
 analyseTerm :: Term Label -> Flow ()
 analyseTerm (Pattern _) = return ()
@@ -164,22 +168,19 @@ analyseTerm (Case (t, _) pts l) =
      update (labels t) $ mapM_ (\(p, s) -> update (labels p) $ analyseTerm s) pts
 
 unalyseTerm :: Term Label -> Flow [Label]
-unalyseTerm (Pattern p)         = return $ labels p
-unalyseTerm (Application _ _ l) = return [l]
-unalyseTerm (Case (_t, _) _pts _l) = return []
-  -- do lss <- mapM (\(p, s) ->
-  --                   do sls <- unalyseTerm s
-  --                      case t of
-  --                        (Application i q l') ->
-  --                          do c <- call (Invert i (meta i)) p
-  --                             -- update [meta q, l] $ analyseCall c
-  --                             return $ [meta q, l] <> labels p
-  --                        _ -> return (meta t : sls <> labels p)
-  --                ) pts
-  --    return $ lss >>= id
+unalyseTerm (Pattern p)            = return $ labels p
+unalyseTerm (Application i _ l)    =
+  do c <- callable i
+     update [l] $ analyseCall (c { arguments = [l] , direction = Up })
+     return [l]
+unalyseTerm (Case (t, _) pts l) =
+  do lss <- mapM (\(p, s) ->
+                    do sls <- unalyseTerm s
+                       tell [(meta t, meta p), (meta s, l)]
+                       update (sls <> labels p) $ unalyseTerm t
+                 ) pts
+     return $ join lss
 
-hello :: Program a -> ((), [Call], [Equality])
-hello program = (a, normalize w, s)
-  where
-    program'  = snd <$> fresh id program
-    (a, w, s) = runERWS (initiate >>= analysis) program' [] []
+implicitArgumentsAnalysis :: Program Label -> ([Call], [Equality])
+implicitArgumentsAnalysis program = (normalize w, s)
+  where (_, w, s) = runERWS (initiate >>= analysis) program [] []
