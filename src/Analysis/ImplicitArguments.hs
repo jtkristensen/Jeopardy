@@ -159,15 +159,14 @@ analysis =
 -- Considers a single function call.
 analyseCall :: Call -> Flow ()
 analyseCall c =
-  do b <- recall c
-     if b
+  do known <- recall c
+     if known
        then return ()
-       else
-       do memoize c
-          ((p,_), (t,_)) <- environment >>= (\f -> f (name c)) . function
-          case direction c of
-            Down -> update (labels p) $ analyseTerm t
-            Up   -> void              $ unalyseTerm t
+       else do memoize c
+               ((p,_), (t,_)) <- function <$> environment <?> name c
+               case direction c of
+                 Down -> update (labels p) $ analyseTerm t
+                 Up   -> void              $ unalyseTerm t
 
 -- Analyses a term as interpreted in the conventional direction.
 analyseTerm :: Term Label -> Flow ()
