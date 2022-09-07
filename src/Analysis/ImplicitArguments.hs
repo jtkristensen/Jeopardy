@@ -46,24 +46,9 @@ data Call
       }
   deriving (Show, Eq, Ord)
 
-type Flow
-  = ERWS Label [Visited] [Equality] [Call]
-
--- Remember that a certain call was made.
-memoize :: Call -> Flow ()
-memoize c = modify $ normalize . (c:)
-
--- Check if we already analysed the call.
-recall :: Call -> Flow Bool
-recall c = elem c <$> get
-
--- Clear memory of calls.
-clear :: Flow ()
-clear = put []
-
-update :: [Visited] -> (Flow a -> Flow a)
-update vs = local (\ws -> normalize $ vs <> ws)
-
+-- Equating things in this setting, means that we require them to bind equal
+-- subexpressions under different labels or different names. The function
+-- "equals" serves specify inter procedural equality.
 class Equatable m where
   equals :: m Label -> m Label -> Flow ()
 
@@ -82,43 +67,7 @@ instance Equatable Term where
     do tell [(meta s, meta t)]
        mapM_ (uncurry equals) $ (,) <$> leafs s <*> leafs t
 
-leafs :: Term a -> [Term a]
-leafs t@(Pattern     _) = [t]
-leafs t@Application{}   = [t]
-leafs (Case _ pts _)    = pts >>= leafs . snd
-
--- Returns an ordered list with out duplications.
-normalize :: (Eq a, Ord a) => [a] -> [a]
-normalize = nub' . sort
-  where nub' (x : y : xys) | x == y =     nub' (y : xys)
-        nub' (x : y : xys)          = x : nub' (y : xys)
-        nub' xys                    =               xys
-
--- flips the direction from Up to Down or visa versa.
-switch :: Direction -> Direction
-switch Up = Down
-switch _  = Up
-
-nameAndDirection :: Inversion a -> (F, Direction)
-nameAndDirection (Conventional f _) = (f, Down)
-nameAndDirection (Invert       i _) = (f, switch d)
-  where (f, d) = nameAndDirection i
-
-callable :: Inversion Label -> Flow Call
-callable i = Call f d [] <$> ask
-  where (f, d) = nameAndDirection i
-
--- returns the call corresponding to an inversion.
-call :: Inversion Label -> Pattern Label -> Flow Call
-call i p =
-  do Call f d _ a     <- callable i
-     define           <- function <$> environment
-     ((q, _), (t, _)) <- define f
-     case d of
-       Up -> Pattern p `equals` t
-       _  -> p `equals` q
-     return $ Call f d (labels p) a
-
+-- If something is labeled, we should be able to read of all of its labels.
 class CanBeLabeled m where
   labels :: m Label -> [Label]
 
@@ -131,20 +80,86 @@ instance CanBeLabeled Term where
   labels (Application _ p l) = l : labels p
   labels (Case (t, _) pts l) = l : labels t <> (pts >>= (\(p, s) -> labels p <> labels s))
 
-initiate :: Flow Call
-initiate =
-  do inversion <- environment >>= main
-     call inversion (Variable Existential "_program_input" (-1))
+-- A `Flow` is a collection of call-paths through the program.  We stop
+-- iterating when we recognize a function call. The only way calls can be
+-- equal, is
+type Flow
+  = ERWS Label [Visited] [Equality] [Call]
 
-analysis :: Call -> Flow ()
-analysis c =
-  do analyseCall c
+-- Runs the analysis.
+implicitArgumentsAnalysis :: Program Label -> ([Call], [Equality])
+implicitArgumentsAnalysis program = (normalize w, s)
+  where (_, w, s) = runERWS analysis program [] []
+
+-- Remember that a certain call was made.
+memoize :: Call -> Flow ()
+memoize c = modify $ normalize . (c:)
+
+-- Check if we already analysed the call.
+recall :: Call -> Flow Bool
+recall c = elem c <$> get
+
+-- Clear memory of calls.
+clear :: Flow ()
+clear = put []
+
+-- Update the list of visited labels.
+update :: [Visited] -> (Flow a -> Flow a)
+update vs = local (\ws -> normalize $ vs <> ws)
+
+-- Computes the "last" or "leaf" expressions of a term.
+leafs :: Term a -> [Term a]
+leafs t@(Pattern     _) = [t]
+leafs t@Application{}   = [t]
+leafs (Case _ pts _)    = pts >>= leafs . snd
+
+-- Returns an ordered list without duplications.
+normalize :: (Eq a, Ord a) => [a] -> [a]
+normalize = nub' . sort
+  where nub' (x : y : xys) | x == y =     nub' (y : xys)
+        nub' (x : y : xys)          = x : nub' (y : xys)
+        nub' xys                    =               xys
+
+-- Flips the direction from Up to Down or visa versa.
+switch :: Direction -> Direction
+switch Up = Down
+switch _  = Up
+
+-- Computes the name and direction of a function inversion.
+nameAndDirection :: Inversion a -> (F, Direction)
+nameAndDirection (Conventional f _) = (f, Down)
+nameAndDirection (Invert       i _) = (f, switch d)
+  where (f, d) = nameAndDirection i
+
+-- Returns a call in which nothing is known about the arguments.
+-- Alternatively to introducing a "dummy" call.
+callable :: Inversion Label -> Flow Call
+callable i = Call f d [] <$> ask
+  where (f, d) = nameAndDirection i
+
+-- Returns the call corresponding to an inversion.
+call :: Inversion Label -> Pattern Label -> Flow Call
+call i p =
+  do Call f d _ a     <- callable i
+     define           <- function <$> environment
+     ((q, _), (t, _)) <- define f
+     case d of
+       Up -> Pattern p `equals` t
+       _  -> p `equals` q
+     return $ Call f d (labels p) a
+
+-- Performs the analysis in both directions, starting at `main`.
+analysis :: Flow ()
+analysis =
+  do c <- environment >>= main >>= callable
+     analyseCall c
      s <- get
      clear
      analyseCall $ c { direction = switch $ direction c }
      t <- get
      put (s <> t)
 
+-- Considers a single function call.
 analyseCall :: Call -> Flow ()
 analyseCall c =
   do b <- recall c
@@ -157,6 +172,7 @@ analyseCall c =
             Down -> update (labels p) $ analyseTerm t
             Up   -> void              $ unalyseTerm t
 
+-- Analyses a term as interpreted in the conventional direction.
 analyseTerm :: Term Label -> Flow ()
 analyseTerm (Pattern _) = return ()
 analyseTerm (Application i p l) =
@@ -167,6 +183,7 @@ analyseTerm (Case (t, _) pts l) =
   do analyseTerm t
      update (labels t) $ mapM_ (\(p, s) -> update (labels p) $ analyseTerm s) pts
 
+-- Analyses a term in a "bottom-up" fashion. (starting at leafs).
 unalyseTerm :: Term Label -> Flow [Label]
 unalyseTerm (Pattern p)            = return $ labels p
 unalyseTerm (Application i _ l)    =
@@ -180,7 +197,3 @@ unalyseTerm (Case (t, _) pts l) =
                        update (sls <> labels p) $ unalyseTerm t
                  ) pts
      return $ join lss
-
-implicitArgumentsAnalysis :: Program Label -> ([Call], [Equality])
-implicitArgumentsAnalysis program = (normalize w, s)
-  where (_, w, s) = runERWS (initiate >>= analysis) program [] []
