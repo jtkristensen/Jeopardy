@@ -29,8 +29,6 @@ import Control.Monad             (void)
 import Transformations.Labeling  (fresh)
 import Transformations.ProgramEnvironment
 
-import Debug.Trace (traceShowId, traceShow)
-
 type Label   = Integer
 type Visited = Label
 
@@ -57,7 +55,7 @@ memoize c = modify $ normalize . (c:)
 
 -- Check if we already analysed the call.
 recall :: Call -> Flow Bool
-recall c = (elem c) <$> get
+recall c = elem c <$> get
 
 -- Clear memory of calls.
 clear :: Flow ()
@@ -75,20 +73,19 @@ instance Equatable Pattern where
   equals (Constructor c ps l1) (Constructor c' qs l2)
     | c == c' =
       do tell [(l1, l2)]
-         mapM (\(p, q) -> p `equals` q) $ zip ps qs
-         return ()
+         mapM_ (uncurry equals) $ zip ps qs
   equals _ _ = return ()
 
 instance Equatable Term where
   equals (Pattern p) (Pattern q) = p `equals` q
   equals s           t           =
     do tell [(meta s, meta t)]
-       void $ mapM (uncurry equals) $ (,) <$> leafs s <*> leafs t
+       mapM_ (uncurry equals) $ (,) <$> leafs s <*> leafs t
 
 leafs :: Term a -> [Term a]
-leafs t@(Pattern     _)     = [t]
-leafs t@(Application _ _ _) = [t]
-leafs (Case _ pts _)        = (snd <$> pts) >>= leafs
+leafs t@(Pattern     _) = [t]
+leafs t@Application{}   = [t]
+leafs (Case _ pts _)    = pts >>= leafs . snd
 
 -- Returns an ordered list with out duplications.
 normalize :: (Eq a, Ord a) => [a] -> [a]
@@ -102,10 +99,10 @@ switch :: Direction -> Direction
 switch Up = Down
 switch _  = Up
 
-name_and_direction :: Inversion a -> (F, Direction)
-name_and_direction (Conventional f _) = (f, Down)
-name_and_direction (Invert       i _) = (f, switch d)
-  where (f, d) = name_and_direction i
+nameAndDirection :: Inversion a -> (F, Direction)
+nameAndDirection (Conventional f _) = (f, Down)
+nameAndDirection (Invert       i _) = (f, switch d)
+  where (f, d) = nameAndDirection i
 
 -- returns the call corresponding to an inversion.
 call :: Inversion Label -> Pattern Label -> Flow Call
@@ -113,10 +110,10 @@ call i p =
   do define           <- function <$> environment
      ((q, _), (t, _)) <- define f
      case d of
-       Up -> (Pattern p) `equals` t
+       Up -> Pattern p `equals` t
        _  -> p `equals` q
      Call f d (labels p) <$> ask
-  where (f, d) = name_and_direction i
+  where (f, d) = nameAndDirection i
 
 class CanBeLabeled m where
   labels :: m Label -> [Label]
@@ -127,7 +124,7 @@ instance CanBeLabeled Pattern where
 
 instance CanBeLabeled Term where
   labels (Pattern p) = labels p
-  labels (Application i p l) = l : labels p
+  labels (Application _ p l) = l : labels p
   labels (Case (t, _) pts l) = l : labels t <> (pts >>= (\(p, s) -> labels p <> labels s))
 
 initiate :: Flow Call
@@ -151,28 +148,38 @@ analyseCall c =
        then return ()
        else
        do memoize c
-          ((p,_), (t,_)) <- function <$> environment >>= \f -> f (name c)
+          ((p,_), (t,_)) <- environment >>= (\f -> f (name c)) . function
           case direction c of
             Down -> update (labels p) $ analyseTerm t
             Up   -> void $ unalyseTerm t
 
 analyseTerm :: Term Label -> Flow ()
-analyseTerm (Pattern p) = return ()
+analyseTerm (Pattern _) = return ()
 analyseTerm (Application i p l) =
   do c <- call i p
      update [l] $ analyseCall c
 analyseTerm (Case (t, _) pts l) =
   update [l] $
   do analyseTerm t
-     update (labels t) $ mapM (\(p, s) -> update (labels p) $ analyseTerm s) pts
-     return ()
+     update (labels t) $ mapM_ (\(p, s) -> update (labels p) $ analyseTerm s) pts
 
 unalyseTerm :: Term Label -> Flow [Label]
 unalyseTerm (Pattern p)         = return $ labels p
-unalyseTerm (Application i p l) = return $ [l]
-unalyseTerm (Case (t, _) pts l) = traceShow t $ return []
+unalyseTerm (Application _ _ l) = return [l]
+unalyseTerm (Case (_t, _) _pts _l) = return []
+  -- do lss <- mapM (\(p, s) ->
+  --                   do sls <- unalyseTerm s
+  --                      case t of
+  --                        (Application i q l') ->
+  --                          do c <- call (Invert i (meta i)) p
+  --                             -- update [meta q, l] $ analyseCall c
+  --                             return $ [meta q, l] <> labels p
+  --                        _ -> return (meta t : sls <> labels p)
+  --                ) pts
+  --    return $ lss >>= id
 
-hello program = runERWS (initiate >>= analysis) program' [] []
+hello :: Program a -> ((), [Call], [Equality])
+hello program = (a, normalize w, s)
   where
     program'  = snd <$> fresh id program
-    -- (a, _, _) = runERWS (initiate >>= analysis) program' [] []
+    (a, w, s) = runERWS (initiate >>= analysis) program' [] []

@@ -5,8 +5,8 @@ module Main where
 -- for experimentation {^o^}.
 
 import Core.Parser   (Source, parseString, program_)
-import Control.Monad (void)
-import Transformations.Labeling
+-- import Control.Monad (void)
+-- import Transformations.Labeling
 import Analysis.ImplicitArguments
 
 fromRight :: Either a b -> b
