@@ -24,10 +24,9 @@ module Analysis.ImplicitArguments where
 -- that are not defined.
 
 import Core.Syntax
-import Transformations.ProgramEnvironment
-
 import Data.List     (sort)
 import Control.Monad (void, join)
+import Transformations.ProgramEnvironment
 
 type Label   = Integer
 type Visited = Label
@@ -83,8 +82,7 @@ instance HasLabels Term where
 -- A `Flow` is a collection of call-paths through the program.  We stop
 -- iterating when we recognize a function call. The only way calls can be
 -- equal, is
-type Flow
-  = ERWS Label [Visited] [Equality] [Call]
+type Flow = ERWS Label [Visited] [Equality] [Call]
 
 -- Runs the analysis.
 implicitArgumentsAnalysis :: Program Label -> ([Call], [Equality])
@@ -141,8 +139,7 @@ callable i = Call f d [] <$> ask
 call :: Inversion Label -> Pattern Label -> Flow Call
 call i p =
   do Call f d _ a     <- callable i
-     define           <- function <$> environment
-     ((q, _), (t, _)) <- define f
+     ((q, _), (t, _)) <- function <$> environment <?> f
      case d of
        Up -> Pattern p `equals` t
        _  -> p `equals` q
