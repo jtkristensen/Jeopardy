@@ -41,7 +41,29 @@ fibProgram =
   "  ; p ->"                                         ++
   "    case first p : nat of"                        ++
   "    ;  fib-n -> [pair n fib-n]."                  ++
-  "main (invert fib)."
+  "main fib."
+
+fibonacciProgram :: Source
+fibonacciProgram =
+  "data nat  = [zero] [suc nat]."                    ++
+  "data pair = [pair nat nat]."                      ++
+  "add ([pair m n] : pair) : nat ="                  ++
+  "   case m : nat of"                               ++
+  "   ; [zero]  -> n"                                ++
+  "   ; [suc k] -> add [pair k [suc n]]."            ++
+  "fibber ([pair m n] : pair) : pair ="              ++
+  "  case add [pair m n] : nat of"                   ++
+  "  ; sum -> [pair sum m]."                         ++
+  "fib_pair (n : nat) : pair ="                      ++
+  " case n : nat of"                                 ++
+  " ; [zero ]   -> [pair [suc [zero]] [suc [zero]]]" ++
+  " ; [suc n-1] ->"                                  ++
+  "   case fib_pair n-1 : pair of"                   ++
+  "   ; p -> fibber p."                              ++
+  "fib (n : nat) : pair ="                           ++
+  "  case fib_pair n : pair of"                      ++
+  "  ; [pair _ fib-n] -> [pair n fib-n]."            ++
+  "main fib."
 
 unswapProgram :: Source
 unswapProgram =
@@ -61,10 +83,10 @@ main =
   print $
   -- fmap snd $
   -- fresh id $
-  void $
+  -- void $
   -- hello $
   fromRight $
   parseString program_ $
-  fibProgram
+  fibonacciProgram
 
 -- main = print "Driver not yet implemented."
