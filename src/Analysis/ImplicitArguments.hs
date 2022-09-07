@@ -29,6 +29,8 @@ import Control.Monad             (void)
 import Transformations.Labeling  (fresh)
 import Transformations.ProgramEnvironment
 
+import Debug.Trace (traceShowId, traceShow)
+
 type Label   = Integer
 type Visited = Label
 
@@ -50,8 +52,8 @@ type Flow
   = ERWS Label [Visited] [Equality] [Call]
 
 -- Remember that a certain call was made.
-mem :: Call -> Flow ()
-mem c = modify $ normalize . (c:)
+memoize :: Call -> Flow ()
+memoize c = modify $ normalize . (c:)
 
 -- Check if we already analysed the call.
 recall :: Call -> Flow Bool
@@ -60,6 +62,9 @@ recall c = (elem c) <$> get
 -- Clear memory of calls.
 clear :: Flow ()
 clear = put []
+
+update :: [Visited] -> (Flow a -> Flow a)
+update vs = local (\ws -> normalize $ vs <> ws)
 
 class Equatable m where
   equals :: m Label -> m Label -> Flow ()
@@ -120,32 +125,54 @@ instance CanBeLabeled Pattern where
   labels (Variable    _ _  l) = [l]
   labels (Constructor _ ps l) = normalize $ l : (ps >>= labels)
 
--- initiate :: Flow Call
--- initiate = environment >>= main >>= call
+instance CanBeLabeled Term where
+  labels (Pattern p) = labels p
+  labels (Application i p l) = l : labels p
+  labels (Case (t, _) pts l) = l : labels t <> (pts >>= (\(p, s) -> labels p <> labels s))
 
--- analysis :: Call -> Flow ()
--- analysis c@(f, direction, labels) =
---   do analyseCall c
---      clear
---      analyseCall (f, switch direction, labels)
+initiate :: Flow Call
+initiate =
+  do inversion <- environment >>= main
+     call inversion (Variable Existential "_program_input" (-1))
 
--- analyseCall :: Call -> Flow ()
--- analyseCall (f, d, ls) =
---   do define           <- function <$> environment
---      ((p, _), (t, _)) <- define f
---      ls'              <- collectLabels p
---      local (const $ normalize $ ls <> ls') $ analyseTerm t
+analysis :: Call -> Flow ()
+analysis c =
+  do analyseCall c
+     s <- get
+     clear
+     analyseCall $ c { direction = switch $ direction c }
+     t <- get
+     put (s <> t)
 
--- collectLabels :: Pattern Label -> Flow [Label]
--- collectLabels (Variable    _ _  l) = return [l]
--- collectLabels (Constructor _ ps l) =
---   do ls <- mapM collectLabels ps
---      return $ normalize $ foldl (<>) [l] ls
+analyseCall :: Call -> Flow ()
+analyseCall c =
+  do b <- recall c
+     if b
+       then return ()
+       else
+       do memoize c
+          ((p,_), (t,_)) <- function <$> environment >>= \f -> f (name c)
+          case direction c of
+            Down -> update (labels p) $ analyseTerm t
+            Up   -> void $ unalyseTerm t
 
--- analyseTerm :: Term Label -> Flow ()
--- analyseTerm = undefined
+analyseTerm :: Term Label -> Flow ()
+analyseTerm (Pattern p) = return ()
+analyseTerm (Application i p l) =
+  do c <- call i p
+     update [l] $ analyseCall c
+analyseTerm (Case (t, _) pts l) =
+  update [l] $
+  do analyseTerm t
+     update (labels t) $ mapM (\(p, s) -> update (labels p) $ analyseTerm s) pts
+     return ()
 
--- hello program = runERWS (initiate >>= analysis) program' [] []
---   where
---     program'  = snd <$> fresh id program
---     -- (a, _, _) = runERWS (initiate >>= analysis) program' [] []
+unalyseTerm :: Term Label -> Flow [Label]
+unalyseTerm (Pattern p)         = return $ labels p
+unalyseTerm (Application i p l) = return $ [l]
+unalyseTerm (Case (t, _) pts l) = traceShow t $ return []
+
+hello program = runERWS (initiate >>= analysis) program' [] []
+  where
+    program'  = snd <$> fresh id program
+    -- (a, _, _) = runERWS (initiate >>= analysis) program' [] []

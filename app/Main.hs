@@ -84,7 +84,7 @@ main =
   -- fmap snd $
   -- fresh id $
   -- void $
-  -- hello $
+  hello $
   fromRight $
   parseString program_ $
   fibonacciProgram

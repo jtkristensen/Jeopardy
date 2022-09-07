@@ -82,3 +82,6 @@ instance MetaData Term where
   meta (Application _ _ a) = a
   meta (Case        _ _ a) = a
 
+instance MetaData Inversion where
+  meta (Conventional _ a) = a
+  meta (Invert       _ a) = a
