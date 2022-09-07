@@ -68,14 +68,14 @@ instance Equatable Term where
        mapM_ (uncurry equals) $ (,) <$> leafs s <*> leafs t
 
 -- If something is labeled, we should be able to read of all of its labels.
-class CanBeLabeled m where
+class HasLabels m where
   labels :: m Label -> [Label]
 
-instance CanBeLabeled Pattern where
+instance HasLabels Pattern where
   labels (Variable    _ _  l) = [l]
   labels (Constructor _ ps l) = normalize $ l : (ps >>= labels)
 
-instance CanBeLabeled Term where
+instance HasLabels Term where
   labels (Pattern p) = labels p
   labels (Application _ p l) = l : labels p
   labels (Case (t, _) pts l) = l : labels t <> (pts >>= (\(p, s) -> labels p <> labels s))
