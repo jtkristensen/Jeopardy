@@ -85,3 +85,19 @@ instance MetaData Term where
 instance MetaData Inversion where
   meta (Conventional _ a) = a
   meta (Invert       _ a) = a
+
+class Annotateable m where
+  labels :: m label -> [label]
+
+instance Annotateable Pattern where
+  labels (Variable    _ _  l) = [l]
+  labels (Constructor _ ps l) = l : (ps >>= labels)
+
+instance Annotateable Term where
+  labels (Pattern p) = labels p
+  labels (Application i p l) = l : labels p <> labels i
+  labels (Case (t, _) pts l) = l : labels t <> (pts >>= (\(p, s) -> labels p <> labels s))
+
+instance Annotateable Inversion where
+  labels (Conventional _ l) = [l]
+  labels (Invert       i l) = l : labels i

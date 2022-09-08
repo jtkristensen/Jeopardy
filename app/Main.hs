@@ -79,12 +79,15 @@ unswapProgram =
 
 main :: IO ()
 main =
-  print $
-  implicitArgumentsAnalysis $
-  fmap snd $
-  fresh id $
-  fromRight $
-  parseString program_ $
-  fibonacciProgram
+  do print $ implicitArgumentsAnalysis program
+     print $ program
+  where
+     program =
+       fmap snd $
+       fresh id $
+       fromRight $
+       parseString program_ $
+       fibonacciProgram
+
 
 -- main = print "Driver not yet implemented."
