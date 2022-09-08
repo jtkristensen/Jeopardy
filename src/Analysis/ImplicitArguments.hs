@@ -49,7 +49,6 @@ data Call
 -- specify inter procedural equality.
 type Implication = (Label, Label)
 
-
 class Implicable m where
   implies :: m Label -> m Label -> Flow ()
 
