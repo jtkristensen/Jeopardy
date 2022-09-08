@@ -134,7 +134,7 @@ call i p =
   do Call f d _ a     <- callable i
      ((q, _), (t, _)) <- function <$> environment <?> f
      case d of
-       Up -> Pattern p `implies` t
+       Up -> t `implies` Pattern p
        _  -> p `implies` q
      return $ Call f d (labels p) a
 
