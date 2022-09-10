@@ -38,8 +38,8 @@ type Equality = (Label, Label)
 
 data Call
   = Call
-      { -- caller    :: F,
-        callee    :: F
+      { caller    :: F
+      , callee    :: F
       , direction :: Direction
       , arguments :: [Label]
       , available :: [Label]
