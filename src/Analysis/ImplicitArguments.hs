@@ -38,7 +38,7 @@ type Equality = (Label, Label)
 
 data Call
   = Call
-      { name      :: F
+      { callee    :: F
       , direction :: Direction
       , arguments :: [Label]
       , available :: [Label]
@@ -163,7 +163,7 @@ analyseCall c =
      if known
        then return ()
        else do memoize c
-               ((p,_), (t,_)) <- function <$> environment <?> name c
+               ((p,_), (t,_)) <- function <$> environment <?> callee c
                case direction c of
                  Down -> update (labels p) $ analyseTerm t
                  Up   -> void              $ unalyseTerm t
