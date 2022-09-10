@@ -34,8 +34,6 @@ type Visited = Label
 data Direction = Up | Down
   deriving (Show, Eq, Ord)
 
-type Equality = (Label, Label)
-
 data Call
   = Call
       { caller    :: F
@@ -46,48 +44,43 @@ data Call
       }
   deriving (Show, Eq, Ord)
 
--- Equating things in this setting, means that we require them to bind equal
--- subexpressions under different labels or different names. The function
--- "equals" serves specify inter procedural equality.
-class Equatable m where
-  equals :: m Label -> m Label -> Flow ()
+-- Implying a label, means that if it binds something outside the function
+-- call, it will bind the an equal subexpressions under different labels or
+-- different names inside the function call. So, the function "implies" serves
+-- specify inter procedural equality.
+type Implication = (Label, Label)
 
-instance Equatable Pattern where
-  equals (Variable _ _ l1) p = tell [(l1, meta p)]
-  equals q (Variable _ _ l2) = tell [(meta q, l2)]
-  equals (Constructor c ps l1) (Constructor c' qs l2)
+class Implicable m where
+  implies :: m Label -> m Label -> Flow ()
+
+newtype KnowledgeOf l = Knowing l
+
+instance Implicable KnowledgeOf where
+  (Knowing l1) `implies` (Knowing l2) = tell [(l1, l2)]
+
+instance Implicable Pattern where
+  implies (Variable _ _ l1) p = Knowing l1 `implies` Knowing (meta p)
+  implies q (Variable _ _ l2) = Knowing (meta q) `implies` Knowing l2
+  implies (Constructor c ps l1) (Constructor c' qs l2)
     | c == c' =
-      do tell [(l1, l2)]
-         mapM_ (uncurry equals) $ zip ps qs
-  equals _ _ = return ()
+      do Knowing l1 `implies` Knowing l2
+         mapM_ (uncurry implies) $ zip ps qs
+  implies _ _ = return ()
 
-instance Equatable Term where
-  equals (Pattern p) (Pattern q) = p `equals` q
-  equals s           t           =
-    do tell [(meta s, meta t)]
-       mapM_ (uncurry equals) $ (,) <$> leafs s <*> leafs t
-
--- If something is labeled, we should be able to read of all of its labels.
-class HasLabels m where
-  labels :: m Label -> [Label]
-
-instance HasLabels Pattern where
-  labels (Variable    _ _  l) = [l]
-  labels (Constructor _ ps l) = normalize $ l : (ps >>= labels)
-
-instance HasLabels Term where
-  labels (Pattern p) = labels p
-  labels (Application _ p l) = l : labels p
-  labels (Case (t, _) pts l) = l : labels t <> (pts >>= (\(p, s) -> labels p <> labels s))
+instance Implicable Term where
+  implies (Pattern p) (Pattern q) = p `implies` q
+  implies s           t           =
+    do Knowing (meta s) `implies` Knowing (meta t)
+       mapM_ (uncurry implies) $ (,) <$> leafs s <*> leafs t
 
 -- A `Flow` is a collection of call-paths through the program.  We stop
 -- iterating when we recognize a function call. The only way calls can be
 -- equal, is
-type Flow = ERWS Label [Visited] [Equality] [Call]
+type Flow = ERWS Label [Visited] [Implication] [Call]
 
 -- Runs the analysis.
-implicitArgumentsAnalysis :: Program Label -> ([Call], [Equality])
-implicitArgumentsAnalysis program = (normalize w, s)
+implicitArgumentsAnalysis :: Program Label -> ([Call], [Implication])
+implicitArgumentsAnalysis program = (normalize w, normalize s)
   where (_, w, s) = runERWS analysis program [] []
 
 -- Remember that a certain call was made.
@@ -138,8 +131,8 @@ call i p =
   do Call f d _ a     <- callable i
      ((q, _), (t, _)) <- function <$> environment <?> f
      case d of
-       Up -> Pattern p `equals` t
-       _  -> p `equals` q
+       Up -> t `implies` Pattern p
+       _  -> p `implies` q
      return $ Call f d (labels p) a
 
 -- Performs the analysis in both directions, starting at `main`.
@@ -179,10 +172,11 @@ unalyseTerm (Application i _ l)    =
   do c <- callable i
      update [l] $ analyseCall (c { arguments = [l] , direction = Up })
      return [l]
-unalyseTerm (Case (t, _) pts l) =
+unalyseTerm (Case (t, _) pts _l) =
   do lss <- mapM (\(p, s) ->
                     do sls <- unalyseTerm s
-                       tell [(meta t, meta p), (meta s, l)]
+                       -- Knowing (meta p) `implies` Knowing (meta t) ??
+                       -- Knowing (meta s) `implies` Knowing l        ??
                        update (sls <> labels p) $ unalyseTerm t
                  ) pts
      return $ join lss
