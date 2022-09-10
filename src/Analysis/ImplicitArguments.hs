@@ -38,7 +38,8 @@ type Equality = (Label, Label)
 
 data Call
   = Call
-      { callee    :: F
+      { -- caller    :: F,
+        callee    :: F
       , direction :: Direction
       , arguments :: [Label]
       , available :: [Label]
@@ -97,10 +98,6 @@ memoize c = modify $ normalize . (c:)
 recall :: Call -> Flow Bool
 recall c = elem c <$> get
 
--- Clear memory of calls.
-clear :: Flow ()
-clear = put []
-
 -- Update the list of visited labels.
 update :: [Visited] -> (Flow a -> Flow a)
 update vs = local (\ws -> normalize $ vs <> ws)
@@ -150,11 +147,7 @@ analysis :: Flow ()
 analysis =
   do c <- environment >>= main >>= callable
      analyseCall c
-     s <- get
-     clear
      analyseCall $ c { direction = switch $ direction c }
-     t <- get
-     put (s <> t)
 
 -- Considers a single function call.
 analyseCall :: Call -> Flow ()
