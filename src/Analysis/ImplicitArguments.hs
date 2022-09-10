@@ -26,10 +26,14 @@ module Analysis.ImplicitArguments where
 import Core.Syntax
 import Data.List     (sort)
 import Control.Monad (void, join)
+import Control.Arrow (second)
 import Transformations.ProgramEnvironment
 
+-- We keep track of which function we are in, and what labels we know from
+-- previous calls.
 type Label   = Integer
 type Visited = Label
+type Path    = [Visited]
 
 data Direction = Up | Down
   deriving (Show, Eq, Ord)
@@ -76,12 +80,12 @@ instance Implicable Term where
 -- A `Flow` is a collection of call-paths through the program.  We stop
 -- iterating when we recognize a function call. The only way calls can be
 -- equal, is
-type Flow = ERWS Label [Visited] [Implication] [Call]
+type Flow = ERWS Label (F, Path) [Implication] [Call]
 
 -- Runs the analysis.
 implicitArgumentsAnalysis :: Program Label -> ([Call], [Implication])
 implicitArgumentsAnalysis program = (normalize w, normalize s)
-  where (_, w, s) = runERWS analysis program [] []
+  where (_, w, s) = runERWS analysis program ("@main", []) []
 
 -- Remember that a certain call was made.
 memoize :: Call -> Flow ()
@@ -92,8 +96,14 @@ recall :: Call -> Flow Bool
 recall c = elem c <$> get
 
 -- Update the list of visited labels.
-update :: [Visited] -> (Flow a -> Flow a)
-update vs = local (\ws -> normalize $ vs <> ws)
+update :: Path -> (Flow a -> Flow a)
+update vs = local (second (\ws -> normalize $ vs <> ws))
+
+path :: Flow Path
+path = snd <$> ask
+
+whoami :: Flow F
+whoami = fst <$> ask
 
 -- Computes the "last" or "leaf" expressions of a term.
 leafs :: Term a -> [Term a]
@@ -119,28 +129,29 @@ nameAndDirection (Conventional f _) = (f, Down)
 nameAndDirection (Invert       i _) = (f, switch d)
   where (f, d) = nameAndDirection i
 
--- Returns a call in which nothing is known about the arguments.
--- Alternatively to introducing a "dummy" call.
-callable :: Inversion Label -> Flow Call
-callable i = Call f d [] <$> ask
-  where (f, d) = nameAndDirection i
-
 -- Returns the call corresponding to an inversion.
 call :: Inversion Label -> Pattern Label -> Flow Call
 call i p =
-  do Call f d _ a     <- callable i
-     ((q, _), (t, _)) <- function <$> environment <?> f
+  do ((q, _), (t, _)) <- function <$> environment <?> f
      case d of
        Up -> t `implies` Pattern p
        _  -> p `implies` q
-     return $ Call f d (labels p) a
+     g <- whoami
+     w <- path
+     return $ Call g f d (labels p) w
+  where
+    (f, d) = nameAndDirection i
 
 -- Performs the analysis in both directions, starting at `main`.
 analysis :: Flow ()
 analysis =
-  do c <- environment >>= main >>= callable
-     analyseCall c
-     analyseCall $ c { direction = switch $ direction c }
+  do cIn  <- environment >>= main >>= flip call input
+     cOut <- environment >>= main >>= flip call output
+     analyseCall   cIn
+     analyseCall $ cOut { direction = switch $ direction cIn }
+  where
+    input  = Variable Ordinary "input"  (-1)
+    output = Variable Ordinary "output" (-2)
 
 -- Considers a single function call.
 analyseCall :: Call -> Flow ()
@@ -168,9 +179,11 @@ analyseTerm (Case (t, _) pts l) =
 -- Analyses a term in a "bottom-up" fashion. (starting at leafs).
 unalyseTerm :: Term Label -> Flow [Label]
 unalyseTerm (Pattern p)            = return $ labels p
-unalyseTerm (Application i _ l)    =
-  do c <- callable i
-     update [l] $ analyseCall (c { arguments = [l] , direction = Up })
+unalyseTerm (Application i p l)    =
+  do c <- call i p
+     update [l] $ analyseCall (c { arguments = [l]
+                                 , direction = switch (direction c)
+                                 })
      return [l]
 unalyseTerm (Case (t, _) pts _l) =
   do lss <- mapM (\(p, s) ->
