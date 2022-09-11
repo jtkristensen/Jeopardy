@@ -24,9 +24,8 @@ module Analysis.ImplicitArguments where
 -- that are not defined.
 
 import Core.Syntax
-import Data.List     (sort)
+import Data.List     (sort, (\\))
 import Control.Monad (void, join)
-import Control.Arrow (second)
 import Transformations.ProgramEnvironment
 
 -- We keep track of which function we are in, and what labels we know from
@@ -44,7 +43,7 @@ data Call
       , callee    :: F
       , direction :: Direction
       , arguments :: [Label]
-      , available :: [Label]
+      , implicits :: [Label]
       }
   deriving (Show, Eq, Ord)
 
@@ -80,12 +79,19 @@ instance Implicable Term where
 -- A `Flow` is a collection of call-paths through the program.  We stop
 -- iterating when we recognize a function call. The only way calls can be
 -- equal, is
-type Flow = ERWS Label (F, Path) [Implication] [Call]
+type Flow = ERWS Label ReadOnly [Implication] [Call]
+
+data ReadOnly =
+  Reads
+    { current   :: F
+    , scope     :: Path
+    , available :: Path
+    }
 
 -- Runs the analysis.
 implicitArgumentsAnalysis :: Program Label -> ([Call], [Implication])
 implicitArgumentsAnalysis program = (normalize w, normalize s)
-  where (_, w, s) = runERWS analysis program ("@main", []) []
+  where (_, w, s) = runERWS analysis program (Reads "@main" [] []) []
 
 -- Remember that a certain call was made.
 memoize :: Call -> Flow ()
@@ -97,13 +103,13 @@ recall c = elem c <$> get
 
 -- Update the list of visited labels.
 update :: Path -> (Flow a -> Flow a)
-update vs = local (second (\ws -> normalize $ vs <> ws))
+update vs = local $ \s -> s { scope = normalize $ scope s <> vs }
 
 path :: Flow Path
-path = snd <$> ask
+path = ask >>= \s -> return $ normalize $ available s <> scope s
 
 whoami :: Flow F
-whoami = fst <$> ask
+whoami = current <$> ask
 
 -- Computes the "last" or "leaf" expressions of a term.
 leafs :: Term a -> [Term a]
@@ -144,14 +150,8 @@ call i p =
 
 -- Performs the analysis in both directions, starting at `main`.
 analysis :: Flow ()
-analysis =
-  do cIn  <- environment >>= main >>= flip call input
-     cOut <- environment >>= main >>= flip call output
-     analyseCall   cIn
-     analyseCall $ cOut { direction = switch $ direction cIn }
-  where
-    input  = Variable Ordinary "input"  (-1)
-    output = Variable Ordinary "output" (-2)
+analysis = environment >>= main >>= \i -> call i input >>= analyseCall
+  where    input = Variable Ordinary "input"  (-1)
 
 -- Considers a single function call.
 analyseCall :: Call -> Flow ()
@@ -161,9 +161,14 @@ analyseCall c =
        then return ()
        else do memoize c
                ((p,_), (t,_)) <- function <$> environment <?> callee c
-               case direction c of
-                 Down -> update (labels p) $ analyseTerm t
-                 Up   -> void              $ unalyseTerm t
+               let body  = labels p <> labels t
+               reads <- ask
+               local (const $
+                      reads { available = (available reads \\ body) <> scope reads
+                            , scope     = [] }) $
+                 case direction c of
+                   Down -> update (labels p) $ analyseTerm t
+                   Up   -> void              $ unalyseTerm t
 
 -- Analyses a term as interpreted in the conventional direction.
 analyseTerm :: Term Label -> Flow ()
@@ -181,15 +186,14 @@ unalyseTerm :: Term Label -> Flow [Label]
 unalyseTerm (Pattern p)            = return $ labels p
 unalyseTerm (Application i p l)    =
   do c <- call i p
-     update [l] $ analyseCall (c { arguments = [l]
-                                 , direction = switch (direction c)
-                                 })
+     update [l] $
+       analyseCall (c { arguments = [l]
+                      , direction = switch (direction c)
+                      })
      return [l]
 unalyseTerm (Case (t, _) pts _l) =
   do lss <- mapM (\(p, s) ->
                     do sls <- unalyseTerm s
-                       -- Knowing (meta p) `implies` Knowing (meta t) ??
-                       -- Knowing (meta s) `implies` Knowing l        ??
                        update (sls <> labels p) $ unalyseTerm t
                  ) pts
      return $ join lss
