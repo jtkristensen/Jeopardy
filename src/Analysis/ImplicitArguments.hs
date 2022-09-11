@@ -149,8 +149,14 @@ call i p =
 
 -- Performs the analysis in both directions, starting at `main`.
 analysis :: Flow ()
-analysis = environment >>= main >>= \i -> call i input >>= analyseCall
-  where    input = Variable Ordinary "input"  (-1)
+analysis =
+  do cIn  <- environment >>= main >>= \i -> call i input
+     cOut <- environment >>= main >>= \i -> call (Invert i (-3)) output
+     analyseCall cIn
+     analyseCall cOut
+  where
+    input  = Variable Ordinary "input"  (-1)
+    output = Variable Ordinary "output" (-2)
 
 -- Considers a single function call.
 analyseCall :: Call -> Flow ()
@@ -164,7 +170,8 @@ analyseCall c =
                implicit <- ask
                local (const $
                       implicit
-                       { available = (available implicit \\ body) <> scope implicit
+                       { current   = callee c
+                       , available = (available implicit \\ body) <> scope implicit
                        , scope     = [] }) $
                  case direction c of
                    Down -> update (labels p) $ analyseTerm t
