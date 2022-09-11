@@ -161,10 +161,11 @@ analyseCall c =
        else do memoize c
                ((p,_), (t,_)) <- function <$> environment <?> callee c
                let body  = labels p <> labels t
-               reads <- ask
+               implicit <- ask
                local (const $
-                      reads { available = (available reads \\ body) <> scope reads
-                            , scope     = [] }) $
+                      implicit
+                       { available = (available implicit \\ body) <> scope implicit
+                       , scope     = [] }) $
                  case direction c of
                    Down -> update (labels p) $ analyseTerm t
                    Up   -> void              $ unalyseTerm t
