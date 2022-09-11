@@ -59,10 +59,10 @@ fibonacciProgram =
   " ; [suc n-1] ->"                                  ++
   "   case fib_pair n-1 : pair of"                   ++
   "   ; p -> fibber p."                              ++
-  "fib (n : nat) : pair ="                           ++
+  "fibbonaci (n : nat) : pair ="                     ++
   "  case fib_pair n : pair of"                      ++
   "  ; [pair _ fib-n] -> [pair n fib-n]."            ++
-  "main fib."
+  "main fibbonaci."
 
 unswapProgram :: Source
 unswapProgram =

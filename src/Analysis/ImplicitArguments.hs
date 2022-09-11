@@ -108,9 +108,6 @@ update vs = local $ \s -> s { scope = normalize $ scope s <> vs }
 path :: Flow Path
 path = ask >>= \s -> return $ normalize $ available s <> scope s
 
-whoami :: Flow F
-whoami = current <$> ask
-
 -- Computes the "last" or "leaf" expressions of a term.
 leafs :: Term a -> [Term a]
 leafs t@(Pattern     _) = [t]
@@ -142,7 +139,7 @@ call i p =
      case d of
        Up -> t `implies` Pattern p
        _  -> p `implies` q
-     g <- whoami
+     g <- current <$> ask
      Call g f d (labels p) <$> path
   where
     (f, d) = nameAndDirection i
