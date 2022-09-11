@@ -143,8 +143,7 @@ call i p =
        Up -> t `implies` Pattern p
        _  -> p `implies` q
      g <- whoami
-     w <- path
-     return $ Call g f d (labels p) w
+     Call g f d (labels p) <$> path
   where
     (f, d) = nameAndDirection i
 
