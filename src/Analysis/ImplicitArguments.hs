@@ -145,15 +145,16 @@ call i p =
     (f, d) = nameAndDirection i
 
 -- Performs the analysis in both directions, starting at `main`.
+-- Assumes that the program does not use -1, -2 or -3 as labels.
 analysis :: Flow ()
 analysis =
   do cIn  <- environment >>= main >>= \i -> call i input
-     cOut <- environment >>= main >>= \i -> call (Invert i (-3)) output
+     cOut <- environment >>= main >>= \i -> call (Invert i (-1)) output
      analyseCall cIn
      analyseCall cOut
   where
-    input  = Variable Ordinary "input"  (-1)
-    output = Variable Ordinary "output" (-2)
+    input  = Variable Ordinary "input"  (-2)
+    output = Variable Ordinary "output" (-3)
 
 -- Considers a single function call.
 analyseCall :: Call -> Flow ()
