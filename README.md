@@ -13,11 +13,4 @@ reference implementation in disseminations.
 [![tests](https://github.com/jtkristensen/Jeopardy/actions/workflows/main-test.yaml/badge.svg)](https://github.com/jtkristensen/Jeopardy/actions/workflows/main-test.yaml)
 
 ## TODO:
-- [x] CI/CD.
-- [x] Per module property based testing.
-- [x] Available expressions analysis (Nilson and Nilson but as a type-and-effect system).
-- [x] Consistency type checking.
-- [x] Graph where labels are vertices, but edges are annotated by labels
-      (where a function gives control to another function.
-- [ ] Properly tested (limited) reversible semantics from IFL.
 - [ ] Write a better todo list.
