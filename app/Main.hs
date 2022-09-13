@@ -79,7 +79,7 @@ unswapProgram =
 
 main :: IO ()
 main =
-  do print $ implicitArgumentsAnalysis program
+  do print $ filter (\t -> callee t == "add" && direction t == Up) $ fst $ implicitArgumentsAnalysis program
      print $ program
   where
      program =
@@ -88,6 +88,5 @@ main =
        fromRight $
        parseString program_ $
        fibonacciProgram
-
 
 -- main = print "Driver not yet implemented."

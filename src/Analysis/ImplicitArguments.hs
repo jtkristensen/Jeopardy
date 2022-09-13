@@ -24,7 +24,7 @@ module Analysis.ImplicitArguments where
 -- that are not defined.
 
 import Core.Syntax
-import Data.List     (sort, (\\))
+import Data.List     (sort, (\\), intersect)
 import Control.Monad (void, join)
 import Transformations.ProgramEnvironment
 
@@ -140,7 +140,9 @@ call i p =
        Up -> t `implies` Pattern p
        _  -> p `implies` q
      g <- current <$> ask
-     Call g f d (labels p) <$> path
+     a <- path
+     let body = labels q <> labels t
+     return $ Call g f d (labels p) (if f == g then a `intersect` body else a)
   where
     (f, d) = nameAndDirection i
 
