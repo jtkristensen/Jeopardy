@@ -79,7 +79,7 @@ unswapProgram =
 
 main :: IO ()
 main =
-  do print $ filter (\t -> callee t == "add" && direction t == Up) $ fst $ implicitArgumentsAnalysis program
+  do print $ implicitArgumentsAnalysis program
      print $ program
   where
      program =
