@@ -59,16 +59,21 @@ data Value                a
   = Algebraic C [Value a] a
   deriving (Functor, Eq, Show)
 
--- * Further more, a canonical form is a value. A value is a pattern that
--- * contains no variables, a term can be a pattern hence:
+-- * A canonical form is a value. A value is a pattern that contains no
+-- * variables, a term can be a pattern. So,
 class CanonicalForm c where
-  canonical :: Value a -> c a
+  canonical    :: Value a -> c a
+  isCannonical :: c a -> Bool
 
 instance CanonicalForm Pattern where
-  canonical (Algebraic c vs a) = Constructor c (canonical <$> vs) a
+  canonical    (Algebraic   c vs a) = Constructor c (canonical <$> vs) a
+  isCannonical (Constructor c ps _) = all isCannonical ps
+  isCannonical _                    = False
 
 instance CanonicalForm Term where
-  canonical = Pattern . canonical
+  canonical                = Pattern . canonical
+  isCannonical (Pattern p) = isCannonical p
+  isCannonical _           = False
 
 class MetaData m where
   meta :: m a -> a
