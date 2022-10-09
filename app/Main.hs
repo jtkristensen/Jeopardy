@@ -77,6 +77,7 @@ unswapProgram =
   "    ; _p -> _p."                                  ++
   "main unswap."
 
+-- Implicit arguments.
 main :: IO ()
 main =
   do print $ implicitArgumentsAnalysis program
