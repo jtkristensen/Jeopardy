@@ -94,3 +94,9 @@ instance Eval Term where
 
 instance EvalOp Term where
   unRun = undefined
+
+instance LinearInference Term where
+  infer _ _ = undefined
+
+instance LinearInferenceOp Term where
+  unInfer = undefined
