@@ -16,13 +16,12 @@ on the other hand promises that functions are locally invertible.
 module Semantics.Reversible where
 
 import Core.Syntax
--- import Transformations.ProgramEnvironment
+import Transformations.ProgramEnvironment
 import Analysis.Unification
--- import Control.Monad (join, zipWithM)
-import Control.Monad.RWS
+import Control.Monad (join, zipWithM)
 
 type Bindings a = [(X, Value a)]
-type Runtime  a = RWS (Bindings a) () ()
+type Runtime  a = ERWS a (Bindings a) () ()
 
 -- Programs running in the conventional direction.
 class Eval term where
@@ -69,11 +68,11 @@ instance LinearOp Pattern where
 
 instance Eval Term where
   run (Pattern       p  ) = run p
-  run (Application (Conventional _ _) p _) =
-    do ((p', _), (_t', _)) <- undefined -- function <$> environment <?> f
+  run (Application (Conventional f _) p _) =
+    do ((p', _), (_t', _)) <- function <$> environment <?> f
        v'                 <- run p
        case patternMatch (canonical v') p' of
-         NoMatch   -> error "stuck in evaluating term"
+         NoMatch    -> error "stuck in evaluating term"
          MatchBy _f -> undefined
   run (Application (Invert g _) p a) = unRun (Application g p a)
   run (Case (_term, _t) _pts _a) = undefined
