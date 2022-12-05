@@ -39,8 +39,8 @@ interpret program input = output
   where
     (output, _, _) = runERWS (run meaning) program id mempty
     meaning        = Application transformation term (meta transformation)
-    term           = canonical input
     transformation = mainFunction program
+    term           = canonical input
 
 -- Unrunning a program corresponds to running its inverse program.
 uninterpret :: Program a -> (Value a -> Value a)
@@ -71,7 +71,7 @@ instance Eval Term where
          NoMatch   -> error "stuck in evaluating term"
          MatchBy g -> local (const g) (run body)
   run (Application (Invert g _) p a) = unRun (Application g p a)
-  run (Case (_term, _t) _pts _a) = undefined
+  run (Case (_term, _) _pts _a) = undefined
 
 instance EvalOp Term where
   unRun = undefined
