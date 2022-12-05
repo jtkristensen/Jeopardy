@@ -64,14 +64,20 @@ instance Eval Pattern where
 instance EvalOp Pattern where
   unRun = run
 
+-- The unique environment in which the pattern evaluated to a particular value.
 instance LinearInference Pattern where
   infer (Variable _ x _) v = return [(x, v)]
-  infer (Constructor c ps _) (Algebraic c' vs _)
-    | c == c' && length ps == length vs =
-      do pvs <- zipWithM infer ps vs
-         return $ join pvs
-  infer _ _ = error "stuck in environment inference for pattern."
+  infer (Constructor c _ _) (Algebraic c' _ _)
+    | c /= c' = error $ concat
+      [ "The value was constructed using ", c', " "
+      , "but the provided term is constructed using ", c ]
+  infer (Constructor _ ps _) (Algebraic c' vs _)
+    | length ps /= length vs = error $ concat
+      [ "The constructor ", c', " expects ", show (length vs), " arguments. "
+      , "But here, ", show (length ps), " were given."]
+  infer (Constructor _ ps _) (Algebraic _ vs _) = join <$> zipWithM infer ps vs
 
+-- The unique environment in which the pattern evaluated to a particular value.
 instance LinearInferenceOp Pattern where
   unInfer = infer
 
