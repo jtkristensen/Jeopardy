@@ -69,7 +69,7 @@ instance Eval Term where
        output              <- run input
        case patternMatch (canonical output) arguments of
          NoMatch   -> error "stuck in evaluating term"
-         MatchBy f -> local (const f) (run body)
+         MatchBy g -> local (const g) (run body)
   run (Application (Invert g _) p a) = unRun (Application g p a)
   run (Case (_term, _t) _pts _a) = undefined
 
@@ -99,7 +99,7 @@ instance EvalOp Pattern where
 
 -- The unique environment in which the pattern evaluated to a particular value.
 instance LinearInference Pattern where
-  infer (Variable _ x _) v = return $ x `mapsto` (canonical v)
+  infer (Variable _ x _) v = return $ x `mapsto` canonical v
   infer (Constructor c _ _) (Algebraic c' _ _)
     | c /= c' = error $ concat
       [ "The value was constructed using ", c', " "

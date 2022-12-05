@@ -126,7 +126,7 @@ instance Binder (Term a) where
   free (Pattern        p    ) = free p
   free (Application _  p   _) = free p
   free (Case (term, _) pts _) =
-    free term ++ [ x | (p, t) <- pts, x <- free t, not (x `elem` free p) ]
+    free term ++ [ x | (p, t) <- pts, x <- free t, x `notElem` free p ]
 
 class Invertible f where
   invert :: f -> f
