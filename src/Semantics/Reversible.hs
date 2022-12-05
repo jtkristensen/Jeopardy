@@ -13,6 +13,16 @@ on the other hand promises that functions are locally invertible.
 
 -}
 
+-----------------------------------------------------------------------------
+-- /!\ Warning.                                                            --
+-----------------------------------------------------------------------------
+-- Currently ERWS does not implement MonadFail. So, errors are just thrown --
+-- directly. Note however, some errors cannot happen. For instance, if a   --
+-- pattern is linearly typed, then we never call the code that throws an   --
+-- error about unbound varibles (since type checking would already have    --
+-- thrown the error).                                                      --
+-----------------------------------------------------------------------------
+
 module Semantics.Reversible where
 
 import Core.Syntax
@@ -32,11 +42,11 @@ class EvalOp term where
   unRun :: term a -> Runtime a (Value a)
 
 -- Unique environment inference for linear terms.
-class Linear term where
+class LinearInference term where
   infer :: term a -> Value a -> Runtime a (Bindings a)
 
 -- Inverse environment inference for linear terms.
-class LinearOp term where
+class LinearInferenceOp term where
   unInfer :: term a -> Value a -> Runtime a (Bindings a)
 
 -- Evaluating a pattern corresponds to looking up the variables it contains.
@@ -54,16 +64,15 @@ instance Eval Pattern where
 instance EvalOp Pattern where
   unRun = run
 
-instance Linear Pattern where
+instance LinearInference Pattern where
   infer (Variable _ x _) v = return [(x, v)]
   infer (Constructor c ps _) (Algebraic c' vs _)
     | c == c' && length ps == length vs =
       do pvs <- zipWithM infer ps vs
          return $ join pvs
-  -- TODO: extend ERWS to be a transformer, or to include failure.
   infer _ _ = error "stuck in environment inference for pattern."
 
-instance LinearOp Pattern where
+instance LinearInferenceOp Pattern where
   unInfer = infer
 
 instance Eval Term where
