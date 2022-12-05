@@ -27,8 +27,8 @@ type F    = Name   -- Function names.
 
 -- * Language definition.
 --
---   Note that everything is annotated with an annotation variable `a`, that
---   will be populated by properties inferred by program analysis.
+-- Note that everything is annotated with an annotation variable `a`, that
+-- will be populated by properties inferred by program analysis.
 
 data Program a
   = Function F (Pattern a, T) (Term a, T) (Program a)
@@ -36,7 +36,8 @@ data Program a
   | Main (Inversion a)
   deriving (Functor, Eq, Show)
 
-data Sort = Ordinary | Existential -- distinguish about kinds of variables
+-- distinguish about kinds of variables
+data Sort = Ordinary | Existential
   deriving (Eq, Show)
 
 data Pattern                  a
@@ -59,16 +60,21 @@ data Value                a
   = Algebraic C [Value a] a
   deriving (Functor, Eq, Show)
 
--- * Further more, a canonical form is a value. A value is a pattern that
--- * contains no variables, a term can be a pattern hence:
+-- A canonical form is a value. A value is a pattern that contains no
+-- variables, a term can be a pattern. So,
 class CanonicalForm c where
-  canonical :: Value a -> c a
+  canonical   :: Value a -> c a
+  isCanonical :: c a -> Bool
 
 instance CanonicalForm Pattern where
-  canonical (Algebraic c vs a) = Constructor c (canonical <$> vs) a
+  canonical   (Algebraic   c vs a) = Constructor c (canonical <$> vs) a
+  isCanonical (Constructor _ ps _) = all isCanonical ps
+  isCanonical _                    = False
 
 instance CanonicalForm Term where
-  canonical = Pattern . canonical
+  canonical               = Pattern . canonical
+  isCanonical (Pattern p) = isCanonical p
+  isCanonical _           = False
 
 class MetaData m where
   meta :: m a -> a

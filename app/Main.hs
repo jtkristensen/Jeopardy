@@ -77,11 +77,11 @@ unswapProgram =
   "    ; _p -> _p."                                  ++
   "main unswap."
 
+-- Implicit arguments.
 main :: IO ()
 main =
-  do print $ filter implicitArgumentsAnalysis program
-     print "---"
-     print program
+  do print $ implicitArgumentsAnalysis program
+     print $ program
   where
      program =
        fmap snd $
