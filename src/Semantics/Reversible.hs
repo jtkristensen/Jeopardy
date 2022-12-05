@@ -99,7 +99,7 @@ instance EvalationOp Term where
          local (const pastEnvironment) $ evaluate arguments
   unEvaluate (Application (Invert g _) p a)
     = evaluate (Application g p a)
-  unEvaluate (Case _ _ _)
+  unEvaluate Case {}
     = error "This cannot happend!"
 
 instance LinearInference Term where
