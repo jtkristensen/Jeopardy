@@ -28,16 +28,15 @@ module Semantics.Reversible where
 import Core.Syntax
 import Transformations.ProgramEnvironment
 import Analysis.Unification
-import Control.Monad (join, zipWithM)
 
-type Bindings a = [(X, Value a)]
+type Bindings a = Substitution Pattern a
 type Runtime  a = ERWS a (Bindings a) () ()
 
 -- Running a program is to call the main function on a value.
 interpret :: Program a -> (Value a -> Value a)
 interpret program input = output
   where
-    (output, _, _) = runERWS (run meaning) program [] ()
+    (output, _, _) = runERWS (run meaning) program mempty mempty
     meaning        = Application transformation term (meta transformation)
     term           = canonical input
     transformation = mainFunction program
@@ -64,10 +63,10 @@ class LinearInferenceOp term where
 
 instance Eval Term where
   run (Pattern       p  ) = run p
-  run (Application (Conventional f _) p _) =
+  run (Application (Conventional f _) input _) =
     do ((p', _), (_t', _)) <- function <$> environment <?> f
-       v'                 <- run p
-       case patternMatch (canonical v') p' of
+       output              <- run input
+       case patternMatch (canonical output) p' of
          NoMatch    -> error "stuck in evaluating term"
          MatchBy _f -> undefined
   run (Application (Invert g _) p a) = unRun (Application g p a)
@@ -84,11 +83,11 @@ instance LinearInferenceOp Term where
 
 -- Evaluating a pattern corresponds to looking up the variables it contains.
 instance Eval Pattern where
-  run (Variable _ x _) =
-    do u <- lookup x <$> ask
-       case u of
-         Nothing -> error $ "unbound variable " ++ x
-         Just v  -> return v
+  run (Variable _ _x _) = undefined
+    -- do env <- ask
+    --    case u of
+    --      Nothing -> error $ "unbound variable " ++ x
+    --      Just v  -> return v
   run (Constructor c ps a) =
     do vs <- mapM run ps
        return (Algebraic c vs a)
@@ -99,7 +98,7 @@ instance EvalOp Pattern where
 
 -- The unique environment in which the pattern evaluated to a particular value.
 instance LinearInference Pattern where
-  infer (Variable _ x _) v = return [(x, v)]
+  infer (Variable _ _x _) _v = undefined
   infer (Constructor c _ _) (Algebraic c' _ _)
     | c /= c' = error $ concat
       [ "The value was constructed using ", c', " "
@@ -108,7 +107,7 @@ instance LinearInference Pattern where
     | length ps /= length vs = error $ concat
       [ "The constructor ", c', " expects ", show (length vs), " arguments. "
       , "But here, ", show (length ps), " were given."]
-  infer (Constructor _ ps _) (Algebraic _ vs _) = join <$> zipWithM infer ps vs
+  infer (Constructor _ _ps _) (Algebraic _ _vs _) = undefined
 
 -- The unique environment in which the pattern evaluated to a particular value.
 instance LinearInferenceOp Pattern where

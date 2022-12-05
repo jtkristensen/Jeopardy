@@ -61,10 +61,10 @@ data Value                a
   deriving (Functor, Eq, Show)
 
 -- A canonical form is a value. A value is a pattern that contains no
--- variables, a term can be a pattern. So,
+-- variables, a term can be a pattern.
 class CanonicalForm c where
-  canonical   :: Value a -> c a
-  isCanonical :: c a -> Bool
+  canonical     :: Value a -> c a
+  isCanonical   :: c a -> Bool
 
 instance CanonicalForm Pattern where
   canonical   (Algebraic   c vs a) = Constructor c (canonical <$> vs) a
@@ -107,6 +107,19 @@ instance Annotateable Term where
 instance Annotateable Function where
   labels (Conventional _ l) = [l]
   labels (Invert       i l) = l : labels i
+
+class Binder m where
+  free :: m -> [X]
+
+instance Binder (Pattern a) where
+  free (Variable    _  x _) = [x]
+  free (Constructor _ ps _) = ps >>= free
+
+instance Binder (Term a) where
+  free (Pattern        p    ) = free p
+  free (Application _  p   _) = free p
+  free (Case (term, _) pts _) =
+    free term ++ [ x | (p, t) <- pts, x <- free t, not (x `elem` free p) ]
 
 class Invertible f where
   invert :: f -> f
