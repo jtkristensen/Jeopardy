@@ -21,7 +21,7 @@ type Law = Precondition String Integer -> Bool
 newtype Precondition a b = Precondition (Fun a b, Pattern a)
   deriving (Show)
 
-instance ( Function a
+instance ( QC.Function a
          , Arbitrary a
          , CoArbitrary a
          , Arbitrary b ) =>
