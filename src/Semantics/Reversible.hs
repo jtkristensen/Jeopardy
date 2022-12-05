@@ -32,9 +32,11 @@ import Control.Monad (zipWithM)
 
 type Bindings a = Transformation Pattern a
 type Runtime  a = ERWS a (Bindings a) () ()
+type Input    a = Value a
+type Output   a = Value a
 
 -- Running a program is to call the main function on a value.
-interpret :: Program a -> (Value a -> Value a)
+interpret :: Program a -> (Input a -> Output a)
 interpret program input = output
   where
     (output, _, _) = runERWS (run meaning) program id mempty
@@ -43,7 +45,7 @@ interpret program input = output
     term           = canonical input
 
 -- Unrunning a program corresponds to running its inverse program.
-uninterpret :: Program a -> (Value a -> Value a)
+uninterpret :: Program a -> (Output a -> Input a)
 uninterpret = interpret . invert
 
 -- Programs running in the conventional direction.
