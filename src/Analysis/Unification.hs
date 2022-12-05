@@ -73,7 +73,10 @@ contains _                    _       = False
 
 -- The substitution where `x` is replaced by `q`.
 substitutes :: Pattern a -> X -> Substitution Pattern a
-substitutes p x = Substitution $ return subst
+substitutes p x = Substitution $ return $ x `mapsto` p
+
+mapsto :: X -> Pattern a -> Transformation Pattern a
+mapsto x p = subst
   where
     subst (Variable    _ y _) | x == y = p
     subst (Constructor c ps m)       = Constructor c (subst <$> ps) m

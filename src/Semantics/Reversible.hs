@@ -28,15 +28,16 @@ module Semantics.Reversible where
 import Core.Syntax
 import Transformations.ProgramEnvironment
 import Analysis.Unification
+import Control.Monad (zipWithM)
 
-type Bindings a = Substitution Pattern a
+type Bindings a = Transformation Pattern a
 type Runtime  a = ERWS a (Bindings a) () ()
 
 -- Running a program is to call the main function on a value.
 interpret :: Program a -> (Value a -> Value a)
 interpret program input = output
   where
-    (output, _, _) = runERWS (run meaning) program mempty mempty
+    (output, _, _) = runERWS (run meaning) program id mempty
     meaning        = Application transformation term (meta transformation)
     term           = canonical input
     transformation = mainFunction program
@@ -64,11 +65,11 @@ class LinearInferenceOp term where
 instance Eval Term where
   run (Pattern       p  ) = run p
   run (Application (Conventional f _) input _) =
-    do ((p', _), (_t', _)) <- function <$> environment <?> f
+    do ((arguments, _), (body, _)) <- function <$> environment <?> f
        output              <- run input
-       case patternMatch (canonical output) p' of
-         NoMatch    -> error "stuck in evaluating term"
-         MatchBy _f -> undefined
+       case patternMatch (canonical output) arguments of
+         NoMatch   -> error "stuck in evaluating term"
+         MatchBy f -> local (const f) (run body)
   run (Application (Invert g _) p a) = unRun (Application g p a)
   run (Case (_term, _t) _pts _a) = undefined
 
@@ -83,11 +84,11 @@ instance LinearInferenceOp Term where
 
 -- Evaluating a pattern corresponds to looking up the variables it contains.
 instance Eval Pattern where
-  run (Variable _ _x _) = undefined
-    -- do env <- ask
-    --    case u of
-    --      Nothing -> error $ "unbound variable " ++ x
-    --      Just v  -> return v
+  run p@(Variable _ x _) =
+    do subst <- ask
+       case toCanonical $ subst p of
+         Nothing -> error $ "unbound variable " ++ x
+         Just v  -> return v
   run (Constructor c ps a) =
     do vs <- mapM run ps
        return (Algebraic c vs a)
@@ -98,7 +99,7 @@ instance EvalOp Pattern where
 
 -- The unique environment in which the pattern evaluated to a particular value.
 instance LinearInference Pattern where
-  infer (Variable _ _x _) _v = undefined
+  infer (Variable _ x _) v = return $ x `mapsto` (canonical v)
   infer (Constructor c _ _) (Algebraic c' _ _)
     | c /= c' = error $ concat
       [ "The value was constructed using ", c', " "
@@ -107,7 +108,8 @@ instance LinearInference Pattern where
     | length ps /= length vs = error $ concat
       [ "The constructor ", c', " expects ", show (length vs), " arguments. "
       , "But here, ", show (length ps), " were given."]
-  infer (Constructor _ _ps _) (Algebraic _ _vs _) = undefined
+  infer (Constructor _ ps _) (Algebraic _ vs _) =
+    foldl (.) id <$> zipWithM infer ps vs
 
 -- The unique environment in which the pattern evaluated to a particular value.
 instance LinearInferenceOp Pattern where

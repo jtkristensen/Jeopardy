@@ -65,16 +65,23 @@ data Value                a
 class CanonicalForm c where
   canonical     :: Value a -> c a
   isCanonical   :: c a -> Bool
+  toCanonical   :: c a -> Maybe (Value a)
 
 instance CanonicalForm Pattern where
   canonical   (Algebraic   c vs a) = Constructor c (canonical <$> vs) a
   isCanonical (Constructor _ ps _) = all isCanonical ps
   isCanonical _                    = False
+  toCanonical (Constructor c ps a)  =
+    do ps' <- mapM toCanonical ps
+       return $ Algebraic c ps' a
+  toCanonical _                    = Nothing
 
 instance CanonicalForm Term where
   canonical               = Pattern . canonical
   isCanonical (Pattern p) = isCanonical p
   isCanonical _           = False
+  toCanonical (Pattern p) = toCanonical p
+  toCanonical _           = Nothing
 
 class MetaData m where
   meta :: m a -> a
