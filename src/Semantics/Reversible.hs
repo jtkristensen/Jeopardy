@@ -75,20 +75,61 @@ instance Evalation Term where
            MatchBy g -> local (const g) (evaluate body)
   evaluate (Application (Invert g _) p a)
     = unEvaluate (Application g p a)
-  evaluate (Case (_term, _) _pts _a)
-    = undefined
+  evaluate (Case (selector, _) cases _)
+    = do env           <- ask
+         value         <- evaluate selector
+         (subst, body) <- firstMatch value cases
+         local (const $ env . subst) $ evaluate body
+
+-- If successfull, returns the substitution and body of the first match in
+-- the conventional direction.
+firstMatch
+  ::       Value a -> [(Pattern a, Term a)]
+  -----------------------------------------------
+  -> Runtime a (Transformation Pattern a, Term a)
+firstMatch = undefined
 
 instance EvalationOp Term where
-  unEvaluate
-    = undefined
+  unEvaluate (Pattern p)
+    = unEvaluate p
+  unEvaluate (Application (Conventional f _) output _)
+    = do ((arguments, _), (body, _)) <- function <$> environment <?> f
+         result          <- unEvaluate output
+         pastEnvironment <- infer body result
+         local (const pastEnvironment) $ evaluate arguments
+  unEvaluate (Application (Invert g _) p a)
+    = evaluate (Application g p a)
+  unEvaluate (Case _ _ _)
+    = error "This cannot happend!"
 
 instance LinearInference Term where
-  infer _ _
-    = undefined
+  infer (Pattern p) v
+    = infer p v
+  infer (Application (Conventional f _) input _) result
+    = do ((arguments, _), (body, _)) <- function <$> environment <?> f
+         pastEnvironment <- infer body result
+         output <- local (const pastEnvironment) $ evaluate arguments
+         infer (Pattern input) output
+  infer (Application (Invert g _) p a) result
+    = unInfer (Application g p a) result
+  infer (Case (selector, _) cases _) result
+    = do (value, body)   <- firstUnMatch result cases
+         pastEnvironment <- infer body result
+         output          <- local (const pastEnvironment) $ evaluate value
+         (.) pastEnvironment <$> infer selector output
 
 instance LinearInferenceOp Term where
   unInfer
     = undefined
+
+-- If successfull, returns the substitution and body of the first match in
+-- the conventional direction.
+firstUnMatch
+  ::       Value a -> [(Pattern a, Term a)]
+  -----------------------------------------------
+  ->        Runtime a (Pattern a, Term a)
+firstUnMatch = undefined
+
 
 -- Evaluating a pattern corresponds to looking up the variables it contains.
 instance Evalation Pattern where
