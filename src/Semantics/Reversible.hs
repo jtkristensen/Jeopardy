@@ -39,7 +39,7 @@ type Output   a = Value a
 interpret :: Program a -> (Input a -> Output a)
 interpret program input = output
   where
-    (output, _, _) = runERWS (run meaning) program id mempty
+    (output, _, _) = runERWS (evaluate meaning) program id mempty
     meaning        = Application transformation term (meta transformation)
     transformation = mainFunction program
     term           = canonical input
@@ -49,12 +49,12 @@ uninterpret :: Program a -> (Output a -> Input a)
 uninterpret = interpret . invert
 
 -- Programs running in the conventional direction.
-class Eval term where
-  run   :: term a -> Runtime a (Value a)
+class Evalation term where
+  evaluate :: term a -> Runtime a (Value a)
 
 -- Terms running in the opposit direction
-class EvalOp term where
-  unRun :: term a -> Runtime a (Value a)
+class EvalationOp term where
+  unEvaluate :: term a -> Runtime a (Value a)
 
 -- Unique environment inference for linear terms.
 class LinearInference term where
@@ -64,44 +64,52 @@ class LinearInference term where
 class LinearInferenceOp term where
   unInfer :: term a -> Value a -> Runtime a (Bindings a)
 
-instance Eval Term where
-  run (Pattern       p  ) = run p
-  run (Application (Conventional f _) input _) =
-    do ((arguments, _), (body, _)) <- function <$> environment <?> f
-       output              <- run input
-       case patternMatch (canonical output) arguments of
-         NoMatch   -> error "stuck in evaluating term"
-         MatchBy g -> local (const g) (run body)
-  run (Application (Invert g _) p a) = unRun (Application g p a)
-  run (Case (_term, _) _pts _a) = undefined
+instance Evalation Term where
+  evaluate (Pattern p)
+    = evaluate p
+  evaluate (Application (Conventional f _) input _)
+    = do ((arguments, _), (body, _)) <- function <$> environment <?> f
+         output                      <- evaluate input
+         case patternMatch (canonical output) arguments of
+           NoMatch   -> error "stuck in evaluating term"
+           MatchBy g -> local (const g) (evaluate body)
+  evaluate (Application (Invert g _) p a)
+    = unEvaluate (Application g p a)
+  evaluate (Case (_term, _) _pts _a)
+    = undefined
 
-instance EvalOp Term where
-  unRun = undefined
+instance EvalationOp Term where
+  unEvaluate
+    = undefined
 
 instance LinearInference Term where
-  infer _ _ = undefined
+  infer _ _
+    = undefined
 
 instance LinearInferenceOp Term where
-  unInfer = undefined
+  unInfer
+    = undefined
 
 -- Evaluating a pattern corresponds to looking up the variables it contains.
-instance Eval Pattern where
-  run p@(Variable _ x _) =
-    do subst <- ask
-       case toCanonical $ subst p of
-         Nothing -> error $ "unbound variable " ++ x
-         Just v  -> return v
-  run (Constructor c ps a) =
-    do vs <- mapM run ps
-       return (Algebraic c vs a)
+instance Evalation Pattern where
+  evaluate p@(Variable _ x _)
+    = do subst <- ask
+         case toCanonical $ subst p of
+           Nothing -> error $ "unbound variable " ++ x
+           Just v  -> return v
+  evaluate (Constructor c ps a)
+    = do vs <- mapM evaluate ps
+         return (Algebraic c vs a)
 
 -- It does not matter which order we look up variables.
-instance EvalOp Pattern where
-  unRun = run
+instance EvalationOp Pattern where
+  unEvaluate
+    = evaluate
 
 -- The unique environment in which the pattern evaluated to a particular value.
 instance LinearInference Pattern where
-  infer (Variable _ x _) v = return $ x `mapsto` canonical v
+  infer (Variable _ x _) v
+    = return $ x `mapsto` canonical v
   infer (Constructor c _ _) (Algebraic c' _ _)
     | c /= c' = error $ concat
       [ "The value was constructed using ", c', " "
@@ -110,9 +118,10 @@ instance LinearInference Pattern where
     | length ps /= length vs = error $ concat
       [ "The constructor ", c', " expects ", show (length vs), " arguments. "
       , "But here, ", show (length ps), " were given."]
-  infer (Constructor _ ps _) (Algebraic _ vs _) =
-    foldl (.) id <$> zipWithM infer ps vs
+  infer (Constructor _ ps _) (Algebraic _ vs _)
+    = foldl (.) id <$> zipWithM infer ps vs
 
 -- The unique environment in which the pattern evaluated to a particular value.
 instance LinearInferenceOp Pattern where
-  unInfer = infer
+  unInfer
+    = infer
