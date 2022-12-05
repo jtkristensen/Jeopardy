@@ -41,7 +41,7 @@ instance Joinable Pattern where
        return $ Constructor c ps' (a, b)
   join _ _ = Nothing
 
-instance Joinable Inversion where
+instance Joinable Function where
   join (Conventional f a) (Conventional _ b) = return $ Conventional f (a, b)
   join (Invert       i a) (Invert       j b) =
     do ij <- join i j
@@ -99,7 +99,7 @@ instance CoJoinable Term where
                 . bimap cojoin cojoin) pts
     in (Case (s, dt) qts a, Case (s', dt) qts' b)
 
-instance CoJoinable Inversion where
+instance CoJoinable Function where
   cojoin (Conventional f (a, b)) =
     (Conventional f a, Conventional f b)
   cojoin (Invert i (a, b)) =

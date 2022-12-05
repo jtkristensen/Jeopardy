@@ -33,7 +33,7 @@ type F    = Name   -- Function names.
 data Program a
   = Function F (Pattern a, T) (Term a, T) (Program a)
   | Data T [(C, [T])]                     (Program a)
-  | Main (Inversion a)
+  | Main (Function a)
   deriving (Functor, Eq, Show)
 
 -- distinguish about kinds of variables
@@ -46,14 +46,14 @@ data Pattern                  a
   deriving (Functor, Eq, Show)
 
 data Term                                  a
-  = Pattern                   (Pattern a)
-  | Application (Inversion a) (Pattern a)  a
+  = Pattern                  (Pattern a)
+  | Application (Function a) (Pattern a)   a
   | Case (Term a, T) [(Pattern a, Term a)] a
   deriving (Functor, Eq, Show)
 
-data Inversion           a
+data Function            a
   = Conventional F       a
-  | Invert (Inversion a) a
+  | Invert (Function a) a
   deriving (Functor, Eq, Show)
 
 data Value                a
@@ -88,7 +88,7 @@ instance MetaData Term where
   meta (Application _ _ a) = a
   meta (Case        _ _ a) = a
 
-instance MetaData Inversion where
+instance MetaData Function where
   meta (Conventional _ a) = a
   meta (Invert       _ a) = a
 
@@ -104,6 +104,23 @@ instance Annotateable Term where
   labels (Application i p l) = l : labels p <> labels i
   labels (Case (t, _) pts l) = l : labels t <> (pts >>= (\(p, s) -> labels p <> labels s))
 
-instance Annotateable Inversion where
+instance Annotateable Function where
   labels (Conventional _ l) = [l]
   labels (Invert       i l) = l : labels i
+
+class Invertible f where
+  invert :: f -> f
+
+instance Invertible (Function a) where
+  invert f = Invert f (meta f)
+
+instance Invertible (Program a) where
+  invert (Function a b c program) = Function a b c (invert program)
+  invert (Data       b c program) = Data       b c (invert program)
+  invert (Main f                ) = Main (invert f)
+
+-- Convinient utility functions.
+mainFunction :: Program a -> Function a
+mainFunction (Function _ _ _ program) = mainFunction program
+mainFunction (Data       _ _ program) = mainFunction program
+mainFunction (Main          function) = function

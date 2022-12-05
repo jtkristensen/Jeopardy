@@ -29,7 +29,7 @@ import qualified Control.Monad.RWS as RWS
 data Environment m a
   = Environment
       { function     :: F -> m ((Pattern a, T), (Term a, T))
-      , main         ::      m (Inversion a)
+      , main         ::      m (Function a)
       , datatype     :: C -> m T
       , constructors :: T -> m [(C, [T])]
       }

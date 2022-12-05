@@ -111,7 +111,7 @@ term_ = choice $
   ]
 
 
-inversion_ :: Parser (Inversion Info)
+inversion_ :: Parser (Function Info)
 inversion_ = choice
   [ info $ Conventional <$> name
   , info $ parens $ keyword "invert" >> Invert <$> inversion_

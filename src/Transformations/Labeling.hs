@@ -62,7 +62,7 @@ instance IntegerAnnotatable Term where
                           return (p', t3)) pts
        return $ Case (t1, t') pts' (a, i)
 
-instance IntegerAnnotatable Inversion where
+instance IntegerAnnotatable Function where
   annotateWithIntegers (Conventional f a) =
     do Conventional f . (,) a <$> bump
   annotateWithIntegers (Invert i a) =

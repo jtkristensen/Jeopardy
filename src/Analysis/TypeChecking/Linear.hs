@@ -101,7 +101,7 @@ instance LinearlyTypeable Pattern where
 instance LinearlyTypeable Term where
   analyse = undefined
 
-instance LinearlyTypeable Inversion where
+instance LinearlyTypeable Function where
   analyse = undefined
 
 -- class Environemental m where

@@ -127,13 +127,13 @@ switch Up = Down
 switch _  = Up
 
 -- Computes the name and direction of a function inversion.
-nameAndDirection :: Inversion a -> (F, Direction)
+nameAndDirection :: Function a -> (F, Direction)
 nameAndDirection (Conventional f _) = (f, Down)
 nameAndDirection (Invert       i _) = (f, switch d)
   where (f, d) = nameAndDirection i
 
 -- Returns the call corresponding to an inversion.
-call :: Inversion Label -> Pattern Label -> Flow Call
+call :: Function Label -> Pattern Label -> Flow Call
 call i p =
   do ((q, _), (t, _)) <- function <$> environment <?> f
      case d of

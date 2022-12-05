@@ -33,6 +33,19 @@ import Control.Monad (join, zipWithM)
 type Bindings a = [(X, Value a)]
 type Runtime  a = ERWS a (Bindings a) () ()
 
+-- Running a program is to call the main function on a value.
+interpret :: Program a -> (Value a -> Value a)
+interpret program input = output
+  where
+    (output, _, _) = runERWS (run meaning) program [] ()
+    meaning        = Application transformation term (meta transformation)
+    term           = canonical input
+    transformation = mainFunction program
+
+-- Unrunning a program corresponds to running its inverse program.
+uninterpret :: Program a -> (Value a -> Value a)
+uninterpret = interpret . invert
+
 -- Programs running in the conventional direction.
 class Eval term where
   run   :: term a -> Runtime a (Value a)
@@ -48,6 +61,26 @@ class LinearInference term where
 -- Inverse environment inference for linear terms.
 class LinearInferenceOp term where
   unInfer :: term a -> Value a -> Runtime a (Bindings a)
+
+instance Eval Term where
+  run (Pattern       p  ) = run p
+  run (Application (Conventional f _) p _) =
+    do ((p', _), (_t', _)) <- function <$> environment <?> f
+       v'                 <- run p
+       case patternMatch (canonical v') p' of
+         NoMatch    -> error "stuck in evaluating term"
+         MatchBy _f -> undefined
+  run (Application (Invert g _) p a) = unRun (Application g p a)
+  run (Case (_term, _t) _pts _a) = undefined
+
+instance EvalOp Term where
+  unRun = undefined
+
+instance LinearInference Term where
+  infer _ _ = undefined
+
+instance LinearInferenceOp Term where
+  unInfer = undefined
 
 -- Evaluating a pattern corresponds to looking up the variables it contains.
 instance Eval Pattern where
@@ -80,23 +113,3 @@ instance LinearInference Pattern where
 -- The unique environment in which the pattern evaluated to a particular value.
 instance LinearInferenceOp Pattern where
   unInfer = infer
-
-instance Eval Term where
-  run (Pattern       p  ) = run p
-  run (Application (Conventional f _) p _) =
-    do ((p', _), (_t', _)) <- function <$> environment <?> f
-       v'                 <- run p
-       case patternMatch (canonical v') p' of
-         NoMatch    -> error "stuck in evaluating term"
-         MatchBy _f -> undefined
-  run (Application (Invert g _) p a) = unRun (Application g p a)
-  run (Case (_term, _t) _pts _a) = undefined
-
-instance EvalOp Term where
-  unRun = undefined
-
-instance LinearInference Term where
-  infer _ _ = undefined
-
-instance LinearInferenceOp Term where
-  unInfer = undefined

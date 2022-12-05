@@ -98,6 +98,6 @@ instance Called Term where
   called (Application i _ _) = called i
   called (Case (t, _) pts _) = called t ++ (pts >>= called . snd)
 
-instance Called Inversion where
+instance Called Function where
   called (Conventional f a) = [(f, a)]
   called (Invert       i _) = called i
