@@ -16,12 +16,13 @@ on the other hand promises that functions are locally invertible.
 module Semantics.Reversible where
 
 import Core.Syntax
-import Transformations.ProgramEnvironment
+-- import Transformations.ProgramEnvironment
 import Analysis.Unification
-import Control.Monad (join, zipWithM)
+-- import Control.Monad (join, zipWithM)
+import Control.Monad.RWS
 
 type Bindings a = [(X, Value a)]
-type Runtime  a = ERWS a (Bindings a) () ()
+type Runtime  a = RWS (Bindings a) () ()
 
 -- Programs running in the conventional direction.
 class Eval term where
@@ -39,6 +40,7 @@ class Linear term where
 class LinearOp term where
   unInfer :: term a -> Value a -> Runtime a (Bindings a)
 
+-- Evaluating a pattern corresponds to looking up the variables it contains.
 instance Eval Pattern where
   run (Variable _ x _) =
     do u <- lookup x <$> ask
@@ -49,6 +51,7 @@ instance Eval Pattern where
     do vs <- mapM run ps
        return (Algebraic c vs a)
 
+-- It does not matter which order we look up variables.
 instance EvalOp Pattern where
   unRun = run
 
@@ -66,8 +69,8 @@ instance LinearOp Pattern where
 
 instance Eval Term where
   run (Pattern       p  ) = run p
-  run (Application (Conventional f _) p _) =
-    do ((p', _), (_t', _)) <- function <$> environment <?> f
+  run (Application (Conventional _ _) p _) =
+    do ((p', _), (_t', _)) <- undefined -- function <$> environment <?> f
        v'                 <- run p
        case patternMatch (canonical v') p' of
          NoMatch   -> error "stuck in evaluating term"
