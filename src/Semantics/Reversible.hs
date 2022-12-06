@@ -81,14 +81,6 @@ instance Evalation Term where
          (subst, body) <- firstMatch value cases
          local (const $ env . subst) $ evaluate body
 
--- If successfull, returns the substitution and body of the first match in
--- the conventional direction.
-firstMatch
-  ::       Value a -> [(Pattern a, Term a)]
-  -----------------------------------------------
-  -> Runtime a (Transformation Pattern a, Term a)
-firstMatch = undefined
-
 instance EvalationOp Term where
   unEvaluate (Pattern p)
     = unEvaluate p
@@ -119,17 +111,15 @@ instance LinearInference Term where
          (.) pastEnvironment <$> infer selector output
 
 instance LinearInferenceOp Term where
-  unInfer
-    = undefined
-
--- If successfull, returns the substitution and body of the first match in
--- the conventional direction.
-firstUnMatch
-  ::       Value a -> [(Pattern a, Term a)]
-  -----------------------------------------------
-  ->        Runtime a (Pattern a, Term a)
-firstUnMatch = undefined
-
+  unInfer (Application (Conventional f _) p _) result
+    = do ((arguments, _), (body, _)) <- function <$> environment <?> f
+         pastEnvironment <- infer arguments result
+         output          <- local (const pastEnvironment) $ evaluate body
+         infer p output
+  unInfer (Application (Invert g _) p a) result
+    = infer (Application g p a) result
+  unInfer _ _
+    = error "This cannot happen!"
 
 -- Evaluating a pattern corresponds to looking up the variables it contains.
 instance Evalation Pattern where
@@ -166,3 +156,27 @@ instance LinearInference Pattern where
 instance LinearInferenceOp Pattern where
   unInfer
     = infer
+
+-- If successfull, returns the substitution and body of the first match in
+-- the conventional direction.
+firstMatch
+  ::       Value a -> [(Pattern a, Term a)]
+  -----------------------------------------------
+  -> Runtime a (Transformation Pattern a, Term a)
+firstMatch _ [              ] = error "pattern matching not exhaustive"
+firstMatch v ((p, t) : cases) =
+  case patternMatch (canonical v) p of
+    NoMatch   -> firstMatch v cases
+    MatchBy f -> return (f, t)
+
+-- If successfull, returns the substitution and body of the first match in
+-- the conventional direction.
+firstUnMatch
+  ::       Value a -> [(Pattern a, Term a)]
+  -----------------------------------------------
+  ->        Runtime a (Pattern a, Term a)
+firstUnMatch _ [                ] = error "Search exhausted"
+firstUnMatch v (q@(p, _) : cases) =
+  case patternMatch (canonical v) p of
+    NoMatch -> firstUnMatch v cases
+    _       -> return q
