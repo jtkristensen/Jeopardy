@@ -56,13 +56,13 @@ class Evalation term where
 class EvalationOp term where
   unEvaluate :: term a -> Runtime a (Value a)
 
--- Unique environment inference for linear terms.
-class LinearInference term where
-  infer :: term a -> Value a -> Runtime a (Bindings a)
+-- Unique environment evaluatedToence for linear terms.
+class LinearEvaluatedToence term where
+  evaluatedTo :: term a -> Value a -> Runtime a (Bindings a)
 
--- Inverse environment inference for linear terms.
-class LinearInferenceOp term where
-  unInfer :: term a -> Value a -> Runtime a (Bindings a)
+-- Inverse environment evaluatedToence for linear terms.
+class LinearEvaluatedToenceOp term where
+  unEvaluatedTo :: term a -> Value a -> Runtime a (Bindings a)
 
 instance Evalation Term where
   evaluate (Pattern p)
@@ -87,38 +87,38 @@ instance EvalationOp Term where
   unEvaluate (Application (Conventional f _) output _)
     = do ((arguments, _), (body, _)) <- function <$> environment <?> f
          result          <- unEvaluate output
-         pastEnvironment <- infer body result
+         pastEnvironment <- body `evaluatedTo` result
          local (const pastEnvironment) $ evaluate arguments
   unEvaluate (Application (Invert g _) p a)
     = evaluate (Application g p a)
   unEvaluate Case {}
     = error "This cannot happend!"
 
-instance LinearInference Term where
-  infer (Pattern p) v
-    = infer p v
-  infer (Application (Conventional f _) input _) result
+instance LinearEvaluatedToence Term where
+  evaluatedTo (Pattern p) v
+    = p `evaluatedTo` v
+  evaluatedTo (Application (Conventional f _) input _) result
     = do ((arguments, _), (body, _)) <- function <$> environment <?> f
-         pastEnvironment <- infer body result
-         output <- local (const pastEnvironment) $ evaluate arguments
-         infer (Pattern input) output
-  infer (Application (Invert g _) p a) result
-    = unInfer (Application g p a) result
-  infer (Case (selector, _) cases _) result
+         pastEnvironment <- body `evaluatedTo` result
+         output          <- local (const pastEnvironment) $ evaluate arguments
+         evaluatedTo (Pattern input) output
+  evaluatedTo (Application (Invert g _) p a) result
+    = Application g p a `unEvaluatedTo` result
+  evaluatedTo (Case (selector, _) cases _) result
     = do (value, body)   <- firstUnMatch result cases
-         pastEnvironment <- infer body result
-         output          <- local (const pastEnvironment) $ evaluate value
-         (.) pastEnvironment <$> infer selector output
+         pastEnvironment <- body `evaluatedTo` result
+         choice          <- local (const pastEnvironment) $ evaluate value
+         (.) pastEnvironment <$> selector `evaluatedTo` choice
 
-instance LinearInferenceOp Term where
-  unInfer (Application (Conventional f _) p _) result
+instance LinearEvaluatedToenceOp Term where
+  unEvaluatedTo (Application (Conventional f _) output _) input
     = do ((arguments, _), (body, _)) <- function <$> environment <?> f
-         pastEnvironment <- infer arguments result
-         output          <- local (const pastEnvironment) $ evaluate body
-         infer p output
-  unInfer (Application (Invert g _) p a) result
-    = infer (Application g p a) result
-  unInfer _ _
+         pastEnvironment <- arguments `evaluatedTo` input
+         result          <- local (const pastEnvironment) $ evaluate body
+         output `evaluatedTo` result
+  unEvaluatedTo (Application (Invert g _) p a) result
+    = Application g p a `evaluatedTo` result
+  unEvaluatedTo _ _
     = error "This cannot happen!"
 
 -- Evaluating a pattern corresponds to looking up the variables it contains.
@@ -134,28 +134,26 @@ instance Evalation Pattern where
 
 -- It does not matter which order we look up variables.
 instance EvalationOp Pattern where
-  unEvaluate
-    = evaluate
+  unEvaluate = evaluate
 
 -- The unique environment in which the pattern evaluated to a particular value.
-instance LinearInference Pattern where
-  infer (Variable _ x _) v
+instance LinearEvaluatedToence Pattern where
+  evaluatedTo (Variable _ x _) v
     = return $ x `mapsto` canonical v
-  infer (Constructor c _ _) (Algebraic c' _ _)
+  evaluatedTo (Constructor c _ _) (Algebraic c' _ _)
     | c /= c' = error $ concat
       [ "The value was constructed using ", c', " "
       , "but the provided term is constructed using ", c ]
-  infer (Constructor _ ps _) (Algebraic c' vs _)
+  evaluatedTo (Constructor _ ps _) (Algebraic c' vs _)
     | length ps /= length vs = error $ concat
       [ "The constructor ", c', " expects ", show (length vs), " arguments. "
       , "But here, ", show (length ps), " were given."]
-  infer (Constructor _ ps _) (Algebraic _ vs _)
-    = foldl (.) id <$> zipWithM infer ps vs
+  evaluatedTo (Constructor _ ps _) (Algebraic _ vs _)
+    = foldl (.) id <$> zipWithM evaluatedTo ps vs
 
 -- The unique environment in which the pattern evaluated to a particular value.
-instance LinearInferenceOp Pattern where
-  unInfer
-    = infer
+instance LinearEvaluatedToenceOp Pattern where
+  unEvaluatedTo = evaluatedTo
 
 -- If successfull, returns the substitution and body of the first match in
 -- the conventional direction.
